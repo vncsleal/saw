@@ -1,30 +1,90 @@
 import http from 'node:http';
-import { buildFeed } from '../../packages/core/dist/index.js';
+import { buildFeed, generateApiKey, verifyRequestSignature, MemoryKeyStore, MemoryBlockStore, MemoryLog, signFeed } from '../../packages/core/dist/index.js';
 import { deferredParagraph, fragmentationUtility, clientBootstrap } from './antiScrape.js';
 
-const blocks = [{ id:'block:hello', type:'doc', title:'Hello', content:'Hello *SAW*', version:'v1', updated_at: new Date().toISOString() }];
+// In-memory stores
+const keyStore = new MemoryKeyStore();
+const blockStore = new MemoryBlockStore();
+const log = new MemoryLog();
+
+// Seed content & key (for demo only; DO NOT expose secret in production)
+blockStore.set([{ id:'block:hello', type:'doc', title:'Hello', content:'Hello *SAW*', version:'v1', updated_at: new Date().toISOString() }]);
+const { id: demoKeyId, secret: demoKeySecret, record: demoRecord } = generateApiKey();
+keyStore.add(demoRecord);
+console.log('# Demo API Key (store this securely)');
+console.log('X-API-KEY:', demoKeyId);
+console.log('X-SECRET (not stored server-side for demo):', demoKeySecret);
+
+function parseBody(req) {
+  return new Promise(resolve => {
+    let data='';
+    req.on('data', c=>data+=c);
+    req.on('end', ()=>resolve(data));
+  });
+}
+
+async function authenticate(req, body) {
+  const keyId = req.headers['x-api-key'];
+  const rec = keyId ? keyStore.get(String(keyId)) : undefined;
+  if (!rec) return { ok:false, code:'NO_KEY', message:'Missing key' };
+  // For demo we keep secret in memory only for the one key created at startup
+  const secret = demoKeySecret; // In production fetch secret securely
+  const headers = { 'x-api-key': keyId, 'x-sig': req.headers['x-sig'], 'x-timestamp': req.headers['x-timestamp'] };
+  return verifyRequestSignature(rec, secret, headers, req.method||'GET', req.url||'/', body);
+}
 
 const server = http.createServer((req,res)=>{
   if (req.url === '/api/saw/feed') {
-    const secret = process.env.SAW_SECRET_KEY;
-    const canarySecret = process.env.SAW_CANARY_SECRET;
-    const feed = buildFeed({ site:'example.local', blocks, secretKeyBase64: secret, canarySecret });
-    const body = JSON.stringify(feed);
-    res.setHeader('content-type','application/json');
-    res.end(body);
+    (async () => {
+      const secret = process.env.SAW_SECRET_KEY;
+      const canarySecret = process.env.SAW_CANARY_SECRET;
+      const blocks = blockStore.list();
+      const feed = buildFeed({ site:'example.local', blocks, secretKeyBase64: secret, canarySecret, perKeySalt: demoRecord.salt });
+      const body = JSON.stringify(feed);
+      res.setHeader('content-type','application/json');
+      res.end(body);
+      log.write({ ts:new Date().toISOString(), level:'info', event:'feed.response', data:{ items: feed.items.length } });
+    })();
   } else if (req.url && req.url.startsWith('/api/saw/diff')) {
-    // Phase 1 scaffold: always 501, stable signed empty diff subset
-    const since = new URL('http://x'+req.url).searchParams.get('since') || '';
-    const diffSubset = { site:'example.local', since, changed:[], removed:[] };
-    let signature = 'UNSIGNED';
-    const secret = process.env.SAW_SECRET_KEY;
-    if (secret) {
-      // reuse buildFeed signing helper indirectly (or keep signFeed import if preferred)
-      // For simplicity we leave diff unsigned or mimic signFeed logic inline later
-    }
-    res.statusCode = 501; // Not Implemented
+    (async () => {
+      const since = new URL('http://x'+req.url).searchParams.get('since') || '';
+      const diff = blockStore.diffSince(since);
+      const subset = { site:'example.local', since, changed: diff.changed, removed: diff.removed };
+      let signature = 'UNSIGNED';
+      const secret = process.env.SAW_SECRET_KEY;
+      if (secret) signature = signFeed(subset, secret);
+      res.setHeader('content-type','application/json');
+      res.end(JSON.stringify({ ...subset, signature }));
+      log.write({ ts:new Date().toISOString(), level:'info', event:'diff.response', data:{ since, changed: diff.changed.length, removed: diff.removed.length } });
+    })();
+  } else if (req.url === '/api/saw/keys') {
+    // Simple list keys endpoint (no auth for demo)
     res.setHeader('content-type','application/json');
-    res.end(JSON.stringify({ ...diffSubset, signature, note:'Diff not implemented yet' }));
+    res.end(JSON.stringify({ keys: keyStore.list().map(k=>({ id:k.id, salt:k.salt })) }));
+    log.write({ ts:new Date().toISOString(), level:'info', event:'keys.list', data:{ count: keyStore.list().length } });
+  } else if (req.url === '/api/saw/ingest' && req.method === 'POST') {
+    (async () => {
+      const body = await parseBody(req);
+      const auth = await authenticate(req, body);
+      if (!auth.ok) { res.statusCode = 401; res.end(JSON.stringify(auth)); return; }
+      // Accept a block upsert { id, type, title, content, version }
+      try {
+        const data = JSON.parse(body);
+        if (!data.id || !data.version) throw new Error('Missing id/version');
+        const existing = blockStore.list().filter(b=>b.id!==data.id);
+        const updated = { ...data, updated_at: new Date().toISOString() };
+        blockStore.set([...existing, updated]);
+        res.setHeader('content-type','application/json');
+        res.end(JSON.stringify({ ok:true }));
+        log.write({ ts:new Date().toISOString(), level:'info', event:'ingest.upsert', data:{ id:data.id, version:data.version } });
+      } catch (e) {
+        res.statusCode = 400; res.end(JSON.stringify({ ok:false, error: e instanceof Error ? e.message : String(e) }));
+        log.write({ ts:new Date().toISOString(), level:'error', event:'ingest.error', data:{ error: e instanceof Error ? e.message : String(e) } });
+      }
+    })();
+  } else if (req.url === '/api/saw/logs') {
+    res.setHeader('content-type','application/json');
+    res.end(JSON.stringify({ logs: log.entries().slice(-200) }));
   } else if (req.url === '/' || req.url === '/index.html') {
     const para = deferredParagraph('This paragraph loads with a slight delay to raise scraping cost.', 200);
     const frag = fragmentationUtility('Fragment this longer body of text into randomized spans for mild obfuscation.');

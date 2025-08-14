@@ -1,10 +1,10 @@
 # SAW Tooling Monorepo
 
-Reference implementation (early draft) for SAW (Structured Access Web): canonicalization, signed feed generation, static canaries, verification CLI, and examples.
+Reference implementation (early draft) for SAW (Structured Access Web): canonicalization, signed feed generation, static + per-key salted canaries, attribution (API keys + HMAC), signed diff subsets, verification CLI, and examples.
 
 ## Contents
 - `packages/core` – Core library (canonicalize, sign/verify, feed builder, canary generator, agent descriptor, event emitter).
-- `packages/cli` – CLI (`canon`, `hash`, `keygen`, `init`, `generate`, `verify`).
+- `packages/cli` – CLI (`canon`, `hash`, `keygen`, `keygen-api`, `list-api`, `init`, `generate`, `verify`, `diff`).
 - `test-vectors/` – Canonicalization & signature vectors.
 - `examples/node` – Feed & diff scaffold + anti-scrape snippets.
 - `schemas/` – JSON Schemas (block, feed, llms.txt normalized).
@@ -33,6 +33,15 @@ node packages/cli/dist/index.js verify feed.json $SAW_PUBLIC_KEY --json
 
 # Verify remote site (expects .well-known/llms.txt)
 node packages/cli/dist/index.js verify example.com $SAW_PUBLIC_KEY
+
+# Generate HMAC API key (Phase 3 attribution)
+node packages/cli/dist/index.js keygen-api
+
+# List locally stored API key IDs
+node packages/cli/dist/index.js list-api
+
+# Fetch & verify a signed diff subset (requires since timestamp)
+node packages/cli/dist/index.js diff example.com $SAW_PUBLIC_KEY --since 2025-01-01T00:00:00.000Z
 ```
 
 ## Determinism & Vectors
@@ -61,14 +70,42 @@ Event schema (fields may expand):
 - feed.response: { ts, event, site, items, signature_present }
 
 ## Canary Fields
-If SAW_CANARY_SECRET is set, each feed item gains `canary` and `structured.meta.canary` fields. Omit the secret to exclude them (useful for diffing behavior or public vs private feeds).
+If `SAW_CANARY_SECRET` is set, each feed item gains `canary` and `structured.meta.canary` fields. Omit the secret to exclude them (useful for diffing behavior or public vs private feeds). When per-key salted canaries are desired (attribution), supply `perKeySalt` when calling `buildFeed` (the example server derives this from the API key record salt) so each consumer sees a distinct deterministic value.
+
+## Attribution & HMAC Request Signing (Phase 3)
+The example server issues API keys with:
+```
+id: key_<hex>
+secret: <base64url 32 bytes> (only shown once)
+salt: first 8 hex of sha256(secret) (used for per-key canaries)
+```
+Client request signing (pseudo):
+```
+timestamp = new Date().toISOString()
+body = JSON.stringify(payload)
+sig = HMAC_SHA256(secret, [method.toUpperCase(), path, timestamp, body].join('\n')) (hex)
+Headers:
+   X-API-KEY: <id>
+   X-TIMESTAMP: <timestamp>
+   X-SIG: <sig>
+```
+Server verifies allowable clock skew (default 120s) and HMAC equality.
+
+## Signed Diff Subsets
+The server exposes `/api/saw/diff?since=<ISO>` returning a subset:
+```
+{ site, since, changed:[{id,version,updated_at}], removed:[id...], signature }
+```
+Signature is Ed25519 over the canonicalized subset (no `signature` field). CLI `diff` command fetches, verifies, and reports counts.
+
+## Logging Endpoint
+Example server exposes `/api/saw/logs` (demo only) showing recent structured events: feed responses, diffs, ingests.
 
 ## Future Enhancements
-- Per-key salted canaries (Phase 3)
-- HMAC request auth & diff implementation (Phase 3)
 - Ephemeral session canaries + detector (Phase 4)
 - Extension registry & search stub (Phase 5)
 - Additional language SDKs
+- Performance benchmarks & 200+ canonicalization fixture corpus
 
 ## License
 MIT

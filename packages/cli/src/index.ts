@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-import { canonicalize, hashCanonical, generateKeyPair, buildFeed, generateLlmsTxt } from '@saw/core';
+import { canonicalize, hashCanonical, generateKeyPair, buildFeed, generateLlmsTxt, generateApiKey, verifySignedDiff, detectCanaries } from '@saw/core';
 import { SimpleEventEmitter } from '@saw/core';
 import { verifyRemote, verifyLocal } from './verify.js';
 import fs from 'node:fs';
 import path from 'node:path';
 
 function printHelp() {
-  console.log(`SAW CLI (early scaffold)\nCommands:\n  canon <json|file>   Canonicalize inline JSON string OR JSON file path\n  hash <json>         Canonicalize + SHA256 hash\n  keygen              Generate Ed25519 key pair\n  init                Scaffold config & sample block\n  generate <site>     Build signed feed from content/blocks\n  verify <feed.json|site> <publicKeyBase64> [--json]  Verify local file or remote site\n  help                Show help`);
+  console.log(`SAW CLI (early scaffold)\nCommands:\n  canon <json|file>   Canonicalize inline JSON string OR JSON file path\n  hash <json>         Canonicalize + SHA256 hash\n  keygen              Generate Ed25519 key pair\n  keygen-api          Generate HMAC API key (Phase 3)\n  list-api            List local API key IDs\n  init                Scaffold config & sample block\n  generate <site>     Build signed feed from content/blocks\n  verify <feed.json|site> <publicKeyBase64> [--json]  Verify local file or remote site\n  diff <site> <publicKeyBase64> --since <ISO>  Fetch & verify remote diff\n  detect <text|file>  Detect embedded canary tokens in text or file\n  help                Show help`);
 }
 
 async function main() {
@@ -18,6 +18,27 @@ async function main() {
   const inputRaw = rest.join(' ');
   try {
     switch (cmd) {
+      case 'keygen-api': {
+        const { id, secret, record } = generateApiKey();
+        // For simplicity, append to a local file .saw-apikeys.json
+        const file = '.saw-apikeys.json';
+  let arr: Array<{ id:string; secret:string }> = [];
+        if (fs.existsSync(file)) arr = JSON.parse(fs.readFileSync(file,'utf8'));
+        arr.push({ id, secret });
+        fs.writeFileSync(file, JSON.stringify(arr, null, 2));
+        console.log('# SAW API Key (store secret securely)');
+        console.log('ID=' + id);
+        console.log('SECRET=' + secret);
+        console.log('SALT=' + record.salt);
+        break;
+      }
+      case 'list-api': {
+        const file = '.saw-apikeys.json';
+        if (!fs.existsSync(file)) { console.log('No API keys'); break; }
+  const arr: Array<{ id:string; secret:string }> = JSON.parse(fs.readFileSync(file,'utf8'));
+  console.log(arr.map(k=>k.id).join('\n'));
+        break;
+      }
       case 'canon': {
         if (!rest.length) {
           console.error('Usage: saw canon <json|file>');
@@ -108,6 +129,48 @@ async function main() {
           console.log(jsonFlag ? JSON.stringify(result) : result.message);
           process.exit(result.code);
         }
+      }
+  break;
+      case 'diff': {
+        const site = rest[0];
+        const pubKey = rest[1];
+        const sinceIdx = rest.indexOf('--since');
+        const since = sinceIdx !== -1 ? rest[sinceIdx+1] : '';
+        const jsonFlag = rest.includes('--json');
+        if (!site || !pubKey || !since) {
+          console.error('Usage: saw diff <site> <publicKeyBase64> --since <ISO> [--json]');
+          process.exit(1);
+        }
+        let base = site;
+        if (!/^https?:\/\//i.test(base)) {
+          if (base.startsWith('localhost') || base.includes(':')) base = 'http://' + base; else base = 'https://' + base;
+        }
+        const url = base.replace(/\/$/, '') + '/api/saw/diff?since=' + encodeURIComponent(since);
+        try {
+          const res = await fetch(url, { headers:{ 'user-agent':'saw-cli/diff' } });
+          if (!res.ok) throw new Error('HTTP '+res.status);
+          const txt = await res.text();
+          const parsed = JSON.parse(txt);
+          if (!parsed.signature) throw new Error('No signature');
+          const ok = verifySignedDiff(parsed, pubKey);
+          const out = { ok, code: ok?0:2, message: ok?'Diff signature OK':'Diff signature failed', changed: parsed.changed?.length||0, removed: parsed.removed?.length||0 };
+          console.log(jsonFlag ? JSON.stringify(out) : out.message + ` (changed=${out.changed} removed=${out.removed})`);
+          process.exit(out.code);
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e);
+          if (jsonFlag) console.log(JSON.stringify({ ok:false, code:3, message:msg })); else console.error('Error fetching diff:', msg);
+          process.exit(3);
+        }
+      }
+  break;
+      case 'detect': {
+        const target = rest[0];
+        if (!target) { console.error('Usage: saw detect <text|file>'); process.exit(1); }
+        let text: string;
+        if (fs.existsSync(target)) text = fs.readFileSync(target,'utf8'); else text = rest.join(' ');
+        const result = detectCanaries(text);
+        console.log(JSON.stringify(result));
+        process.exit(0);
       }
   break;
   default:

@@ -5,3 +5,7 @@ export * from './feed.js';
 export * from './llmsTxt.js';
 export * from './agent.js';
 export * from './canary.js';
+export { generateApiKey, computeRequestSignature, verifyRequestSignature } from './auth.js';
+export * from './diff.js';
+export * from './store.js';
+export * from './ephemeral.js';

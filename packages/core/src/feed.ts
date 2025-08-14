@@ -8,11 +8,12 @@ export interface BuildFeedOptions {
   blocks: Block[];
   generatedAt?: string;
   sign?: (canonicalSubset: string) => string; // returns base64 signature (Phase 1)
+  perKeySalt?: string; // Added perKeySalt option
 }
 
 export function buildFeed(opts: BuildFeedOptions & { secretKeyBase64?: string, canarySecret?: string, events?: EventEmitterLike }) {
   const generated_at = opts.generatedAt || new Date().toISOString();
-  const sourceBlocks = opts.canarySecret ? enrichBlocksWithCanaries(opts.blocks, opts.canarySecret) : opts.blocks;
+  const sourceBlocks = opts.canarySecret ? enrichBlocksWithCanaries(opts.blocks, opts.canarySecret, opts.events, opts.perKeySalt) : opts.blocks;
   opts.events?.emit('feed.request', { site: opts.site, block_count: sourceBlocks.length });
   const items = sourceBlocks.map(b => {
     BlockSchema.parse(b); // validate

@@ -19,9 +19,9 @@ function toBase62(buf: Buffer): string {
   return out || '0';
 }
 
-export function generateStaticCanary(opts: CanaryOptions): string {
-  const { secret, id, version } = opts;
-  const h = crypto.createHmac('sha256', secret).update(id + '|' + version).digest();
+export function generateStaticCanary(opts: CanaryOptions & { salt?: string }): string {
+  const { secret, id, version, salt } = opts;
+  const h = crypto.createHmac('sha256', secret).update(id + '|' + version + (salt ? '|' + salt : '')).digest();
   const b62 = toBase62(h).replace(/^[0O]+/, '');
   const len = opts.length ?? 10;
   return b62.slice(0, len);
@@ -35,9 +35,9 @@ export class SimpleEventEmitter implements EventEmitterLike {
   }
 }
 
-export function enrichBlocksWithCanaries(blocks: Block[], secret: string, emitter?: EventEmitterLike) {
+export function enrichBlocksWithCanaries(blocks: Block[], secret: string, emitter?: EventEmitterLike, salt?: string) {
   return blocks.map(b => {
-    const canary = generateStaticCanary({ secret, id: b.id, version: b.version });
+  const canary = generateStaticCanary({ secret, id: b.id, version: b.version, salt });
     emitter?.emit('canary.issued', { id: b.id, version: b.version, canary });
     return { ...b, canary };
   });
