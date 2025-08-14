@@ -1,5 +1,9 @@
 # SAW Tooling Monorepo
 
+[![npm version (saw-core)](https://img.shields.io/npm/v/saw-core)](https://www.npmjs.com/package/saw-core)
+[![npm version (saw-cli)](https://img.shields.io/npm/v/saw-cli)](https://www.npmjs.com/package/saw-cli)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Reference implementation (early draft) for SAW (Structured Access Web): canonicalization, signed feed generation, static + per-key salted canaries, attribution (API keys + HMAC), signed diff subsets, verification CLI, and examples.
 
 ## Contents
@@ -10,16 +14,44 @@ Reference implementation (early draft) for SAW (Structured Access Web): canonica
 - `schemas/` – JSON Schemas (block, feed, llms.txt normalized).
 - `scripts/` – Determinism & legacy canonicalization script.
 
-## Usage
+## Installation
 
-Install and run tests:
-
+Core library (runtime dependency):
 ```bash
-# run unit tests
+npm install saw-core
+```
+
+CLI (dev / tooling dependency):
+```bash
+npm install --save-dev saw-cli
+```
+
+Or run on demand with npx (no install):
+```bash
+npx saw keygen
+```
+
+## Quick Start
+
+Generate a keypair and build a minimal feed:
+```bash
+node -e "import('saw-core').then(m=>{const kp=m.generateKeyPair();console.log('PUBLIC',Buffer.from(kp.publicKey).toString('base64'));console.log('SECRET',Buffer.from(kp.secretKey).toString('base64'));})"
+
+# Suppose you saved PUBLIC & SECRET to env vars
+SAW_PUBLIC_KEY=... SAW_SECRET_KEY=... node packages/cli/dist/index.js generate example.com > feed.json
+
+# Verify the feed
+node packages/cli/dist/index.js verify feed.json $SAW_PUBLIC_KEY --json
+```
+
+## Usage (CLI Commands)
+
+Run unit tests:
+```bash
 npm test
 
 ## Core Commands
-
+### Core Commands
 ```bash
 # Canonicalize inline JSON
 node packages/cli/dist/index.js canon '{"b":2,"a":1}'
@@ -46,7 +78,6 @@ node packages/cli/dist/index.js diff example.com $SAW_PUBLIC_KEY --since 2025-01
 
 ## Determinism & Vectors
 `npm run determinism` executes multi-run canonicalization stability check; golden signature vector locks signing behavior.
-```
 
 Expected output: all vectors pass.
 
