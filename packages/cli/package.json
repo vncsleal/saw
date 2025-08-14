@@ -1,17 +1,44 @@
 {
   "name": "@saw/cli",
   "version": "0.1.0",
-  "private": true,
+  "description": "SAW CLI: canonicalize, generate & verify signed feeds, diffs, canary detection.",
   "bin": {
     "saw": "dist/index.js"
   },
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vncsleal/saw.git"
+  },
+  "bugs": {
+    "url": "https://github.com/vncsleal/saw/issues"
+  },
+  "homepage": "https://github.com/vncsleal/saw#readme",
+  "keywords": [
+    "saw",
+    "cli",
+    "canonicalization",
+    "ed25519",
+    "feed",
+    "diff",
+    "verification"
+  ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "package.json"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@saw/core": "0.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
