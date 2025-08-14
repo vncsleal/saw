@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateKeyPairFromSeed, signFeed, verifySignedDiff } from './index.js';
+import { generateKeyPairFromSeed, signFeed, verifySignedDiff } from '../src/index.js';
 
 describe('verifySignedDiff', () => {
   it('verifies signed diff subset', () => {

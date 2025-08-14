@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildAgentDescriptor, generateKeyPairFromSeed } from './index.js';
+import { buildAgentDescriptor, generateKeyPairFromSeed } from '../src/index.js';
 
 describe('agent descriptor', () => {
   it('builds descriptor with fingerprint', () => {

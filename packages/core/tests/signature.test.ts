@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateKeyPair, signFeed, verifyFeedSignature } from './crypto.js';
+import { generateKeyPair, signFeed, verifyFeedSignature } from '../src/crypto.js';
 
 describe('feed signature', () => {
   it('signs and verifies feed subset', () => {

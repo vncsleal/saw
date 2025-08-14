@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { generateStaticCanary, enrichBlocksWithCanaries } from './canary.js';
-import { Block } from './schemas.js';
+import { generateStaticCanary, enrichBlocksWithCanaries } from '../src/canary.js';
+import { Block } from '../src/schemas.js';
 
 describe('static canary', () => {
   it('stable for same id/version/secret', () => {

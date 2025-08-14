@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateKeyPairFromSeed, signFeed, verifyFeedSignature } from './index.js';
+import { generateKeyPairFromSeed, signFeed, verifyFeedSignature } from '../src/index.js';
 import fs from 'node:fs';
 
 interface GoldenVector { seed:string; public_key_base64:string; feed_subset:unknown; signature_base64:string; }

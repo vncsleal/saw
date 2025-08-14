@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildFeed, generateKeyPairFromSeed, generateApiKey } from './index.js';
+import { buildFeed, generateKeyPairFromSeed, generateApiKey } from '../src/index.js';
 
 const blocks = [ { id:'block:salt', type:'doc', title:'Salted', content:'', version:'v1', updated_at:'2025-01-01T00:00:00Z' } ];
 

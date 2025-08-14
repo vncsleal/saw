@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateApiKey, computeRequestSignature, verifyRequestSignature } from './index.js';
+import { generateApiKey, computeRequestSignature, verifyRequestSignature } from '../src/index.js';
 
 function mockHeaders(h: Record<string,string>): Record<string,string> { return h; }
 

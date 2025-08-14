@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildFeed, generateKeyPairFromSeed, Block } from './index.js';
+import { buildFeed, generateKeyPairFromSeed, Block } from '../src/index.js';
 
 const blocks: Block[] = [
   { id:'block:c1', type:'doc', title:'C1', content:'', version:'v1', updated_at:'2025-01-01T00:00:00Z' } as Block

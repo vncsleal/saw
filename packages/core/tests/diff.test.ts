@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { computeDiff } from './diff.js';
-import type { Block } from './schemas.js';
+import { computeDiff } from '../src/diff.js';
+import type { Block } from '../src/schemas.js';
 
 const baseBlock = (id:string, ver:string, updated:string): Block => ({ id, type:'doc', title:id, content:'', version:ver, updated_at:updated });
 

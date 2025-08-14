@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateLlmsTxt } from './llmsTxt.js';
+import { generateLlmsTxt } from '../src/llmsTxt.js';
 
 describe('generateLlmsTxt', () => {
   it('produces expected header lines', () => {

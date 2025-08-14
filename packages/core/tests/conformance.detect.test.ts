@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectCanaries } from './ephemeral.js';
+import { detectCanaries } from '../src/ephemeral.js';
 
 // Conformance Test ID: CT-DETECT-01
 // Ensures detector classification & confidence scoring behave as specified.

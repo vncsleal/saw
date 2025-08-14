@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { EphemeralCanaryStore, detectCanaries, mapDetectedTokens } from './ephemeral.js';
+import { EphemeralCanaryStore, detectCanaries, mapDetectedTokens } from '../src/ephemeral.js';
 
 describe('EphemeralCanaryStore', () => {
   it('issues and looks up tokens within TTL', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MemoryLog } from './store.js';
+import { MemoryLog } from '../src/store.js';
 
 describe('MemoryLog', () => {
   it('stores and retrieves entries', () => {

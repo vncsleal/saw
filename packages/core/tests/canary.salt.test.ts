@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateStaticCanary } from './canary.js';
+import { generateStaticCanary } from '../src/canary.js';
 
 describe('generateStaticCanary', () => {
   it('differs with salt and respects length', () => {

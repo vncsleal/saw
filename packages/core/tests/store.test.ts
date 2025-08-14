@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { MemoryBlockStore } from './store.js';
-import { computeDiff } from './diff.js';
+import { MemoryBlockStore } from '../src/store.js';
+import { computeDiff } from '../src/diff.js';
 
 interface TestBlock { id:string; type:'doc'; title:string; content:string; version:string; updated_at:string }
 function makeBlock(id: string, version: string, updated_at: string): TestBlock {
