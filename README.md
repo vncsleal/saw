@@ -53,7 +53,7 @@ Feed & diff signatures use Ed25519 (tweetnacl). Treat secret keys and canary sec
 Guidelines:
 - Never commit secrets: keep `SAW_SECRET_KEY`, `SAW_CANARY_SECRET`, API key secrets, and HMAC salts out of VCS. Use `.env` (git‑ignored) or secret managers (1Password, Vault, AWS/GCP secret stores).
 - Ed25519 secret key length: 64 raw bytes (base64 length 88). Public key: 32 raw bytes (base64 length 44). Validation: the library enforces 64‑byte secret input when signing.
-- Generation: use `saw keygen` for random keys. Only use `generateKeyPairFromSeed` for deterministic test fixtures; never for production (seed predictability compromises signatures).
+- Generation: use `saw keygen` for random keys. Deterministic seeded key generation has been removed to simplify the API.
 - Rotation: issue a new keypair, publish updated `Public-Key-Base64` in `.well-known/llms.txt`, include both old & new for a grace period, then remove the old after clients update.
 - Environment variables: prefix secrets with `SAW_` for clarity; do not echo them in CI logs. In containers, mount via secrets, not baked into images.
 - Least privilege: if serving multiple sites, isolate per site keypairs so compromise scope is bounded.

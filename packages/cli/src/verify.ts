@@ -66,17 +66,10 @@ export async function verifyRemote(base: string, publicKeyB64?: string): Promise
       const fp = fingerprintPublicKey(publicKeyB64);
       if (fp !== meta.fingerprint) return { ok:false, code:2, message:`Fingerprint mismatch (expected ${meta.fingerprint} got ${fp})` };
     }
-    // Optional: check detect endpoint presence (non-fatal)
-  let detectOk = false;
-    try {
-      const detectRes = await fetch(siteBase.replace(/\/$/, '') + '/api/saw/detect', { method:'POST', headers:{ 'content-type':'application/json', 'user-agent':'saw-cli/verify' }, body: JSON.stringify({ text: 'probe text' }) });
-      if (detectRes.ok) detectOk = true;
-  } catch { /* detect endpoint optional */ }
-  const parts = [ 'Signature OK' ];
-  if (!hasLlms) parts.push('llms.txt missing');
-  if (!headerPk) parts.push('no header key');
-  if (!detectOk) parts.push('detect endpoint missing');
-  return { ok:true, code:0, message: parts.join(' | ') };
+    const parts = [ 'Signature OK' ];
+    if (!hasLlms) parts.push('llms.txt missing');
+    if (!headerPk) parts.push('no header key');
+    return { ok:true, code:0, message: parts.join(' | ') };
   } catch (e: unknown) {
     return { ok:false, code:3, message: e instanceof Error ? e.message : String(e) };
   }

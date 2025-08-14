@@ -1,36 +1,18 @@
-// Public API barrel for saw (merged core + helpers)
-export { canonicalize, sha256Hex, hashCanonical } from './core/canonicalize.js';
-export { generateKeyPair, generateKeyPairFromSeed, signFeed, verifyFeedSignature } from './core/crypto.js';
-export { feedHash, buildFeedCore } from './core/feed.js';
-export { diffCanonical, diffStringArrays } from './core/diff.js';
-export { buildAuthHeaders } from './core/auth.js';
-export { ItemSchema, FeedSchema } from './core/schemas.js';
-export { buildLLMsTxtEntry } from './core/llmsTxt.js';
-export { createInMemoryStore } from './core/store.js';
-export { generateEphemeralToken } from './core/ephemeral.js';
-export { AgentQueue } from './core/agent.js';
-export {
-  createFeedHandler,
-  createDetectHandler,
-  createFeedFetchHandler,
-  createDetectFetchHandler
-} from './server.js';
-export type { SawFeedItem, CreateFeedHandlerOptions, CreateDetectHandlerOptions } from './server.js';
-export { buildAntiScrapeHTML, createAntiScrapePageHandler, generateCanaryToken, extractCanariesFromHtml } from './antiscrape.js';
+// Minimal public API (signature, feed generation, llms.txt, antiscrape helpers, verification schemas)
+export { generateKeyPair, signFeed, verifyFeedSignature } from './core/crypto.js';
+export { FeedSchema, ItemSchema } from './core/schemas.js';
+export { canonicalize } from './core/canonicalize.js';
 
-// Re-implementations / adapters for previously separate higher-level functions expected by CLI
-export interface BuildFeedInput { site: string; blocks: Array<Record<string, unknown>>; secretKeyBase64: string; canarySecret?: string; events?: SimpleEventEmitter; }
+// Simple feed builder used by CLI and server helpers
+export interface BuildFeedInput { site: string; blocks: Array<Record<string, unknown>>; secretKeyBase64: string; }
 export function buildFeed(opts: BuildFeedInput) {
-  const { site, blocks, secretKeyBase64, canarySecret, events } = opts;
+  const { site, blocks, secretKeyBase64 } = opts;
   const items = blocks.map(b=>({ id: String(b.id||''), type: b.type || 'doc', title: (b.title as string) || String(b.id||''), content: b.content ?? null, version: (b.version as string)||'v1', updated_at: (b.updated_at as string)|| new Date().toISOString() }));
   const base = { site, generated_at: new Date().toISOString(), items };
   const signature = signFeed(base, secretKeyBase64);
-  events?.emit('blockCount', items.length);
-  return { ...base, signature, canary: canarySecret ? { hint: 'present' } : undefined } as const;
+  return { ...base, signature } as const;
 }
-
-// local import for internal use of sign/verify (re-exports above don't create bindings)
-import { signFeed, verifyFeedSignature } from './core/crypto.js';
+import { signFeed } from './core/crypto.js';
 
 export function generateLlmsTxt(args: { feedUrl: string; publicKeyFingerprint: string; publicKey: string; }) {
   const { feedUrl, publicKeyFingerprint, publicKey } = args;
@@ -43,30 +25,46 @@ export function generateLlmsTxt(args: { feedUrl: string; publicKeyFingerprint: s
   ].join('\n');
 }
 
-export function generateApiKey() {
-  const id = 'ak_' + Math.random().toString(36).slice(2,10);
-  const secret = 'ask_' + Math.random().toString(36).slice(2,18);
-  const salt = Math.random().toString(36).slice(2,10);
-  const record = { id, salt };
-  return { id, secret, record };
+// Feed API route (access part): minimal fetch-style handler
+export interface FeedRouteOptions {
+  site: string;
+  secretKeyBase64: string;
+  getBlocks: () => Promise<Array<Record<string, unknown>>> | Array<Record<string, unknown>>;
+  publicKeyBase64?: string; // if provided, included as response header for convenience
 }
 
-export function verifySignedDiff(diffObj: unknown, publicKeyB64: string): boolean {
-  if (!diffObj || typeof diffObj !== 'object') return false;
-  if (!('signature' in diffObj)) return false;
-  const { signature, ...subset } = diffObj as { signature: string } & Record<string, unknown>;
-  try { return verifyFeedSignature(subset, signature, publicKeyB64); } catch { return false; }
+export function createFeedRoute(opts: FeedRouteOptions) {
+  const { site, secretKeyBase64, getBlocks, publicKeyBase64 } = opts;
+  return async function handle(request: Request): Promise<Response> {
+    if (request.method !== 'GET') {
+      return new Response('Method Not Allowed', { status: 405, headers: { allow: 'GET' } });
+    }
+    try {
+      const blocks = await getBlocks();
+      const feed = buildFeed({ site, blocks, secretKeyBase64 });
+      const headers: Record<string,string> = { 'content-type':'application/json; charset=utf-8' };
+      if (publicKeyBase64) headers['x-saw-public-key'] = publicKeyBase64;
+      return new Response(JSON.stringify(feed), { status:200, headers });
+    } catch (e: unknown) {
+      return new Response(JSON.stringify({ error: e instanceof Error ? e.message : String(e) }), { status:500, headers:{ 'content-type':'application/json' } });
+    }
+  };
 }
 
-export function detectCanaries(text: string) {
-  const regex = /\b[A-Z]{3,5}-\d{3,6}\b/g; // simple pattern detector
-  const matches = text.match(regex) || [];
-  return { count: matches.length, matches };
+// Optional Node.js (http) adapter
+export function createNodeFeedHandler(opts: FeedRouteOptions) {
+  const route = createFeedRoute(opts);
+  return async function nodeHandler(req: import('http').IncomingMessage, res: import('http').ServerResponse) {
+    const method = req.method || 'GET';
+    const url = 'http://localhost' + (req.url || '/');
+    const request = new Request(url, { method });
+    const response = await route(request);
+    res.statusCode = response.status;
+    for (const [k,v] of response.headers.entries()) res.setHeader(k, v);
+    const body = await response.text();
+    res.end(body);
+  };
 }
 
-// Simple event emitter if not already exposed
-export class SimpleEventEmitter {
-  private handlers: Record<string, Array<(...args: unknown[])=>void>> = {};
-  on(event: string, fn: (...args: unknown[])=>void) { (this.handlers[event] ||= []).push(fn); }
-  emit(event: string, ...args: unknown[]) { (this.handlers[event]||[]).forEach(fn=>fn(...args)); }
-}
+// Anti-scrape (canary) HTML generation minimal subset
+export { buildAntiScrapeHTML, generateCanaryToken } from './antiscrape.js';

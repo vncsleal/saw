@@ -34,7 +34,7 @@ Capture:
 Store as JSON for traceability.
 
 ## Extending
-Add diff verification (fetch /diff?since=<iso>) and verifySignedDiff.
+Add diff verification (fetch /diff?since=<iso>) if desired; diff signature helper removed in minimal API.
 Add webhook receiver test to ensure canary.detected events emit.
 
 ## Governance

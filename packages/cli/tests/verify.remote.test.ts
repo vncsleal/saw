@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createServer, Server } from 'node:http';
-import { generateKeyPairFromSeed, buildFeed, generateLlmsTxt } from '../src/api.js';
+import { generateKeyPair, buildFeed, generateLlmsTxt } from '../src/api.js';
 import { verifyRemote } from '../src/verify.js';
 import { createHash } from 'node:crypto';
 
@@ -12,7 +12,8 @@ let tamperedFeed: Feed;
 let publicKeyB64: string;
 
 beforeAll(async () => {
-  const kp = generateKeyPairFromSeed('remote-verify-seed');
+  // Use randomly generated key pair for test (no deterministic seed needed after API simplification)
+  const kp = generateKeyPair();
   publicKeyB64 = Buffer.from(kp.publicKey).toString('base64');
   const secretKeyB64 = Buffer.from(kp.secretKey).toString('base64');
   const blocks = [

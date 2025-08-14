@@ -82,7 +82,7 @@ Optional:
 - `SAW_DETECT_WEBHOOK` webhook URL for detection & feed events (server side)
 
 ## Security Notes
-Treat `SAW_SECRET_KEY` and canary secrets as production credentials. Rotate by publishing the new `Public-Key-Base64` while still accepting the old key for a grace window, then retire it. Never commit secrets or use seeded key generation (`generateKeyPairFromSeed`) outside tests.
+Treat `SAW_SECRET_KEY` and canary secrets as production credentials. Rotate by publishing the new `Public-Key-Base64` while still accepting the old key for a grace window, then retire it. Never commit secrets.
 
 ## Exit Codes
 - 0 success / verified
