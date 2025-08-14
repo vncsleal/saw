@@ -18,8 +18,8 @@
   ],
   "scripts": {
   "build": "npm run build:core && npm run build:cli",
-  "build:core": "rm -rf packages/core/dist && tsc -b packages/core",
-  "build:cli": "rm -rf packages/cli/dist && tsc -b packages/cli",
+  "build:core": "rm -rf packages/core/dist && tsc -b packages/core --force",
+  "build:cli": "rm -rf packages/cli/dist && tsc -b packages/cli --force",
     "test": "vitest run --reporter basic",
     "coverage": "vitest run --coverage",
     "lint": "eslint . --ext .ts,.js",
