@@ -1,5 +1,5 @@
 {
-  "name": "@saw/core",
+  "name": "saw-core",
   "version": "0.1.1",
   "description": "SAW core library: canonicalization, signed feeds, diff subsets, canaries, detection, schemas.",
   "type": "module",
@@ -47,6 +47,7 @@
     "tweetnacl": "^1.0.3",
     "zod": "^3.23.0"
   },
+  "engines": { "node": ">=18" },
   "publishConfig": {
     "access": "public"
   }

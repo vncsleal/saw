@@ -44,6 +44,31 @@ SAW_PUBLIC_KEY=... SAW_SECRET_KEY=... node packages/cli/dist/index.js generate e
 node packages/cli/dist/index.js verify feed.json $SAW_PUBLIC_KEY --json
 ```
 
+## Security & Key Handling
+Feed & diff signatures use Ed25519 (tweetnacl). Treat secret keys and canary secrets as production credentials.
+
+Guidelines:
+- Never commit secrets: keep `SAW_SECRET_KEY`, `SAW_CANARY_SECRET`, API key secrets, and HMAC salts out of VCS. Use `.env` (git‑ignored) or secret managers (1Password, Vault, AWS/GCP secret stores).
+- Ed25519 secret key length: 64 raw bytes (base64 length 88). Public key: 32 raw bytes (base64 length 44). Validation: the library enforces 64‑byte secret input when signing.
+- Generation: use `saw keygen` for random keys. Only use `generateKeyPairFromSeed` for deterministic test fixtures; never for production (seed predictability compromises signatures).
+- Rotation: issue a new keypair, publish updated `Public-Key-Base64` in `.well-known/llms.txt`, include both old & new for a grace period, then remove the old after clients update.
+- Environment variables: prefix secrets with `SAW_` for clarity; do not echo them in CI logs. In containers, mount via secrets, not baked into images.
+- Least privilege: if serving multiple sites, isolate per site keypairs so compromise scope is bounded.
+- Canary secret (`SAW_CANARY_SECRET`): rotate independently of signing keys; a leak only reveals canary determinism, not signing ability.
+- Per‑key canaries: derive a salt server‑side (e.g., first 8 hex chars of SHA‑256 of API key secret) and never send the salt itself to clients.
+- API keys & HMAC: the API key secret must be long (>=32 random bytes). Return it only once on creation; store only a hashed form (e.g., SHA‑256) plus truncated salt/metadata.
+- Memory hygiene: avoid long‑lived plaintext secrets in logs. Zero buffers after use in higher‑sensitivity environments (not implemented here; future hardening).
+- Diff verification: always verify `signature` for diff subsets before trusting `changed` / `removed` arrays. Reject unsigned or malformed responses.
+- Time skew: when adding timestamped request signing, enforce small clock drift (e.g., ±120s) to reduce replay window.
+- Production monitoring: alert on repeated signature verification failures or sudden spike in canary detections (possible scraping).
+
+Threat considerations:
+- Secret key exposure lets attackers forge feeds/diffs: rotate immediately and broadcast compromise.
+- Canary secret exposure enables prediction of static canaries: rotate; per‑key salted canaries mitigate blast radius.
+- API key database leak (hashed secrets) still permits offline brute force if weak secrets allowed—enforce length & randomness.
+
+Planned hardening (future): optional key vault interface, in‑memory secret zeroization, multi‑signature rotation window, structured security advisories.
+
 ## Usage (CLI Commands)
 
 Run unit tests:
@@ -85,7 +110,7 @@ Expected output: all vectors pass.
 1. Append a new object to `vectors` with `name`, `input`, and placeholder `sha256`.
 2. Run `node` REPL or adapt the hash helper:
    ```bash
-   node -e "import('./scripts/canonicalize.js').then(m=>{const {hashCanonical}=m;const obj={example:1};const r=hashCanonical(obj);console.log(r);});"
+   node -e "import('./scripts/canonicalize.js').then(m=>{const {hashCanonical}=m;const obj={example:1};const r=m.hashCanonical(obj);console.log(r);});"
    ```
 3. Replace placeholder hash & (if needed) canonical string.
 4. Re-run tests and confirm PASS.
@@ -176,6 +201,7 @@ HARNESS_LOG_BASE=...      # override logs endpoint (default http://localhost:300
 HARNESS_OUTPUT=results.json  # change JSON summary filename
 HARNESS_REQUIRE_WEBHOOKS=1   # (future) fail run if webhook validation skipped
 HARNESS_PUBLIC_KEY_B64=...   # external diff: supply remote public key if llms.txt lacks Public-Key-Base64
+```
 
 Summary file shape (example excerpt):
 ```

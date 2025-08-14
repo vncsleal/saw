@@ -1,14 +1,14 @@
 # Installation & Next.js Integration Guide
 
-This guide shows how to consume `@saw/core` (and optionally the `@saw/cli`) inside a Next.js project (App Router or Pages). It assumes the packages are published; while they remain private you can `npm link` or use a relative workspace reference.
+This guide shows how to consume `saw-core` (and optionally the `saw-cli`) inside a Next.js project (App Router or Pages). It assumes the packages are published; while they remain private you can `npm link` or use a relative workspace reference.
 
 ## 1. Install Dependencies
 
 ```bash
 # Once published
-npm install @saw/core
+npm install saw-core
 # (Optional) CLI for local feed/diff ops & key generation
-npm install --save-dev @saw/cli
+npm install --save-dev saw-cli
 ```
 
 While private (in this monorepo):
@@ -23,7 +23,7 @@ npm install ../path/to/saw-core-x.y.z.tgz
 ## 2. Generate Keys
 Use the CLI (recommended) or programmatic API.
 ```bash
-# In the saw repo (or after installing @saw/cli)
+# In the saw repo (or after installing saw-cli)
 npx saw keygen
 # Outputs base64 PUBLIC_KEY and SECRET_KEY
 ```
@@ -59,7 +59,7 @@ Each block object minimal fields:
 Create `app/api/saw/feed/route.ts`:
 ```ts
 import { NextRequest, NextResponse } from 'next/server';
-import { buildFeed } from '@saw/core';
+import { buildFeed } from 'saw-core';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -88,10 +88,10 @@ Maintain a lightweight in-memory (or DB-backed) index of block metadata. Simple 
 `app/api/saw/diff/route.ts`:
 ```ts
 import { NextRequest, NextResponse } from 'next/server';
-import { buildFeed, signDiffSubset } from '@saw/core'; // if signDiffSubset exported; else manually rebuild & filter then sign
+import { buildFeed, signDiffSubset } from 'saw-core'; // if signDiffSubset exported; else manually rebuild & filter then sign
 import fs from 'node:fs';
 import path from 'node:path';
-import { canonicalize, hashCanonical, signCanonical } from '@saw/core';
+import { canonicalize, hashCanonical, signCanonical } from 'saw-core';
 
 export const runtime = 'nodejs';
 
@@ -123,7 +123,7 @@ Expose POST /api/saw/detect that maps detected tokens back to issuance events (h
 `app/api/saw/detect/route.ts`:
 ```ts
 import { NextRequest, NextResponse } from 'next/server';
-import { detectCanaries } from '@saw/core';
+import { detectCanaries } from 'saw-core';
 
 const issued = new Map<string, { ts: number; requestId: string }>();
 
@@ -150,7 +150,7 @@ Integrate `registerCanary` where you embed tokens (e.g., server-rendered page ro
 ## 7. Embedding Ephemeral Tokens in a Page
 Add to `app/page.tsx` (or a layout) server component:
 ```tsx
-import { randomEphemeralCanary } from '@saw/core';
+import { randomEphemeralCanary } from 'saw-core';
 import { registerCanary } from './api/saw/detect/route';
 
 export default function Home() {
@@ -172,14 +172,14 @@ export default function Home() {
 You can pre-generate `.well-known/llms.txt` using the CLI during build or a script:
 ```bash
 PUBLIC_KEY_FINGERPRINT=$(echo -n $SAW_PUBLIC_KEY | base64 --decode | openssl sha256 -binary | xxd -p -c 256 | cut -c1-8)
-node -e "import('@saw/core').then(m=>{const txt=m.generateLlmsTxt({site:process.env.SAW_SITE||'example.com',feedUrl:`https://${process.env.SAW_SITE}/api/saw/feed`,publicKeyFingerprint:`ed25519:${process.env.SAW_SITE?'' : ''}${'ed25519:'}${'${PUBLIC_KEY_FINGERPRINT}'}`,publicKey:process.env.SAW_PUBLIC_KEY});require('fs').mkdirSync('.well-known',{recursive:true});require('fs').writeFileSync('.well-known/llms.txt',txt);})"
+node -e "import('saw-core').then(m=>{const txt=m.generateLlmsTxt({site:process.env.SAW_SITE||'example.com',feedUrl:`https://${process.env.SAW_SITE}/api/saw/feed`,publicKeyFingerprint:`ed25519:${process.env.SAW_SITE?'' : ''}${'ed25519:'}${'${PUBLIC_KEY_FINGERPRINT}'}`,publicKey:process.env.SAW_PUBLIC_KEY});require('fs').mkdirSync('.well-known',{recursive:true});require('fs').writeFileSync('.well-known/llms.txt',txt);})"
 ```
 (Or create on demand in a route.)
 
 Simpler programmatic Next.js route `app/.well-known/llms.txt/route.ts`:
 ```ts
 import { NextRequest, NextResponse } from 'next/server';
-import { generateLlmsTxt } from '@saw/core';
+import { generateLlmsTxt } from 'saw-core';
 
 export async function GET(req: NextRequest) {
   const site = process.env.SAW_SITE || req.nextUrl.host || 'example.com';
@@ -194,14 +194,14 @@ export async function GET(req: NextRequest) {
 ```
 
 ## 9. Verification (Consumer Side)
-Consumers fetch the feed, canonicalize & verify using @saw/core or the CLI:
+Consumers fetch the feed, canonicalize & verify using saw-core or the CLI:
 ```bash
 npx saw verify example.com $SAW_PUBLIC_KEY
 ```
 
 Programmatic:
 ```ts
-import { verifyFeed } from '@saw/core'; // if exported; else manual canonicalize & signature check
+import { verifyFeed } from 'saw-core'; // if exported; else manual canonicalize & signature check
 ```
 
 ## 10. Webhooks (Optional)
@@ -223,7 +223,7 @@ Call within feed/diff/detect handlers.
 
 ## 12. Minimal Client Detector Usage
 ```ts
-import { detectCanaries } from '@saw/core';
+import { detectCanaries } from 'saw-core';
 const result = detectCanaries(scrapedText);
 console.log(result.uniqueTokens, result.classification, result.confidence_band);
 ```

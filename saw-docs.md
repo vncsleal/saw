@@ -359,7 +359,7 @@ Allow: /public
 
 ---
 ## 20. Quickstart (Narrative)
-1. Install: `npm i @saw/core @saw/cli`.
+1. Install: `npm i saw-core saw-cli`.
 2. Init: `npx saw init` → creates keys, sample block.
 3. Generate: `npx saw generate` → outputs feed, llms.txt.
 4. Serve feed route via framework adapter (e.g., `createSawFeedHandler(config)`).

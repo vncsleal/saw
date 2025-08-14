@@ -30,6 +30,7 @@
     "bench:feed": "node scripts/benchmark-feed.mjs"
   ,"coverage:enforce": "node scripts/enforce-coverage.mjs"
   ,"harness": "node scripts/run-verification-harness.mjs"
+  ,"smoke": "npm run build --silent && node scripts/smoke.mjs"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
