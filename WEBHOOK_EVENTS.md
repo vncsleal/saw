@@ -45,14 +45,34 @@ Payload:
   "matched": [ { "token": "c-...", "requestId": "feed-..." } ],
   "unknown": [ "c-..." ],
   "confidence": <0..1>,
+  "confidence_band": "none|low|medium|high",
   "classification": "none|single|multiple",
   "rationale": "<string summary>"
 }
 ```
 
+### diff.response (log event now; webhook future)
+Emitted after serving a diff subset.
+Payload (log):
+```
+{ "since": "<ISO>", "changed": <int>, "removed": <int> }
+```
+Webhook (future) MAY add:
+```
+{ "since": "<ISO>", "changed": <int>, "removed": <int>, "signature_present": <boolean> }
+```
+
+### ingest.upsert (log event now; webhook future)
+Emitted after a block upsert via /api/saw/ingest.
+Payload:
+```
+{ "id": "block:...", "version": "vX" }
+```
+
 ## Future (Not Yet Implemented)
-- diff.response webhook
+- diff.response webhook (signature_present TBD)
 - ingest.upsert webhook
+- canary.detected confidence_band already present (Phase 4)
 
 ## Notes
 These webhook schemas are stable for Phase 4 internal validation; external consumers should treat them as experimental until formally versioned.

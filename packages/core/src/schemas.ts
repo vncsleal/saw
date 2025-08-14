@@ -37,5 +37,36 @@ export const FeedSchema = z.object({
   session_canary: z.string().optional()
 });
 
+// Webhook payload schemas (best-effort, may be partial depending on server implementation)
+export const WebhookFeedResponseSchema = z.object({ items: z.number().optional(), ephemeral: z.string().optional() }).passthrough();
+export const WebhookPageResponseSchema = z.object({ ephemeral: z.string().optional() }).passthrough();
+export const WebhookDetectRequestSchema = z.object({ tokens: z.number(), matched: z.number().optional(), confidence: z.number().min(0).max(1).optional() }).passthrough();
+export const WebhookCanaryDetectedSchema = z.object({
+  tokens: z.array(z.string()),
+  totalOccurrences: z.number(),
+  matched: z.array(z.object({ token: z.string(), requestId: z.string() })),
+  unknown: z.array(z.string()),
+  confidence: z.number().min(0).max(1),
+  confidence_band: z.enum(['none','low','medium','high']).optional(),
+  classification: z.enum(['none','single','multiple']),
+  rationale: z.string()
+}).passthrough();
+
+// Newly documented (Phase 4) additional events
+export const WebhookDiffResponseSchema = z.object({
+  since: z.string().optional(),
+  changed: z.number().optional(),
+  removed: z.number().optional(),
+  signature_present: z.boolean().optional()
+}).passthrough();
+
+export const WebhookIngestUpsertSchema = z.object({
+  id: z.string().regex(/^block:/),
+  version: z.string()
+}).passthrough();
+
 export type Block = z.infer<typeof BlockSchema>;
 export type Feed = z.infer<typeof FeedSchema>;
+export type WebhookCanaryDetected = z.infer<typeof WebhookCanaryDetectedSchema>;
+export type WebhookDiffResponse = z.infer<typeof WebhookDiffResponseSchema>;
+export type WebhookIngestUpsert = z.infer<typeof WebhookIngestUpsertSchema>;

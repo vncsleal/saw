@@ -129,8 +129,9 @@ const server = http.createServer((req,res)=>{
           tokens: det.unique,
           totalOccurrences: det.count,
           matched: mapped.matched,
-          unknown: mapped.unknown,
+            unknown: mapped.unknown,
           confidence: det.confidence,
+          confidence_band: det.confidence_band,
           classification: det.classification,
           rationale: det.rationale
         });

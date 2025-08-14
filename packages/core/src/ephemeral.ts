@@ -37,7 +37,7 @@ export class EphemeralCanaryStore {
 }
 
 // Detector utility
-export interface DetectResult { tokens: string[]; unique: string[]; count: number; classification: string; confidence: number; rationale: string; }
+export interface DetectResult { tokens: string[]; unique: string[]; count: number; classification: string; confidence: number; confidence_band: 'low'|'medium'|'high'|'none'; rationale: string; }
 
 // Spec tokens length 8-10 chars after prefix
 const DEFAULT_REGEX = /c-[A-Za-z0-9]{8,10}/g;
@@ -67,7 +67,14 @@ export function detectCanaries(text: string, pattern: RegExp = DEFAULT_REGEX): D
     if (confidence < 0) confidence = 0;
     rationale = `${diversity} unique tokens (${total} occurrences)`;
   }
-  return { tokens: matches, unique, count: matches.length, classification, confidence: Number(confidence.toFixed(2)), rationale };
+  const rounded = Number(confidence.toFixed(2));
+  let band: 'low'|'medium'|'high'|'none' = 'none';
+  if (rounded > 0) {
+    if (rounded >= 0.85) band = 'high';
+    else if (rounded >= 0.6) band = 'medium';
+    else band = 'low';
+  }
+  return { tokens: matches, unique, count: matches.length, classification, confidence: rounded, confidence_band: band, rationale };
 }
 
 export interface DetectionMapping { matched: Array<{ token: string; requestId: string }>; unknown: string[]; }

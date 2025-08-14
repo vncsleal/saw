@@ -17,4 +17,4 @@ Purpose: Provide repeatable sample texts for exercising `detectCanaries` and map
 Harness extension (future): iterate files, run detector, compare to ground truth, accumulate accuracy.
 
 ## Expansion Guidelines
-Include adversarial near-miss patterns like `c-abc123` (too short) to ensure regex does not over-match; store those in a `near-miss` classification if added.
+Include adversarial near-miss patterns (too short, too long, invalid chars, embedded) that should NOT be matched. Always include at least one valid control token to assert detection still works.

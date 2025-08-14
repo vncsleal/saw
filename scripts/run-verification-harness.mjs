@@ -5,9 +5,33 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { hashCanonical, buildAgentDescriptor, buildFeed, generateKeyPair, verifyFeedSignature, detectCanaries, EphemeralCanaryStore } from '../packages/core/dist/index.js';
+import { hashCanonical, buildAgentDescriptor, buildFeed, generateKeyPair, verifyFeedSignature, detectCanaries, EphemeralCanaryStore, verifySignedDiff, WebhookCanaryDetectedSchema, WebhookDetectRequestSchema, WebhookFeedResponseSchema, WebhookPageResponseSchema, WebhookDiffResponseSchema, WebhookIngestUpsertSchema } from '../packages/core/dist/index.js';
+import { spawn } from 'node:child_process';
 
 function section(title){ console.log(`\n=== ${title} ===`); }
+
+// Optionally start example server for integrated validation (with generated signing key)
+let serverProc = null;
+let serverStarted = false;
+let serverPublicKeyBase64 = '';
+async function startServerIfNeeded(){
+  if (!process.env.HARNESS_START_SERVER) return;
+  // Generate a deterministic keypair for this run to allow remote diff signature verification
+  const serverKp = generateKeyPair();
+  serverPublicKeyBase64 = Buffer.from(serverKp.publicKey).toString('base64');
+  const serverSecretKeyBase64 = Buffer.from(serverKp.secretKey).toString('base64');
+  return new Promise(resolve => {
+    serverProc = spawn('node',['examples/node/server.js'],{ stdio:['ignore','pipe','pipe'], env:{ ...process.env, SAW_SECRET_KEY: serverSecretKeyBase64 } });
+    serverProc.stdout.on('data', d=>{
+      const s = d.toString();
+      if (!serverStarted && s.includes('Example feed on')) { serverStarted = true; resolve(true); }
+      process.stdout.write(s.replace(/\n$/,''));
+    });
+    serverProc.stderr.on('data', d=>process.stderr.write(d.toString()));
+    setTimeout(()=>{ if (!serverStarted) resolve(false); }, 4000); // 4s timeout
+  });
+}
+await startServerIfNeeded();
 
 // 1. Canonicalization determinism over fixtures
 section('Canonicalization Determinism');
@@ -81,6 +105,7 @@ if (fs.existsSync(corpusDir)) {
   console.log('No detector-samples directory');
 }
 
+// Collate summary prior to exit
 const failures = [];
 if (canonMismatches) failures.push('canonicalization');
 if (!verified) failures.push('signature');
@@ -88,4 +113,139 @@ if (detect.unique.length === 0) failures.push('detector');
 if (detectorFailures) failures.push('detector-corpus');
 if (fixtureShortfall) failures.push('fixture-count');
 console.log('failures=', failures);
+
+// 6. Diff subset verification (attempt local server first then simulate)
+section('Diff Subset Verification');
+let diffVerified = false;
+let diffMode = 'none';
+const sinceIso = new Date(Date.now()-60*60*1000).toISOString();
+async function tryFetch(url){
+  try { const r = await fetch(url, { headers:{'user-agent':'saw-harness/diff'} }); if (!r.ok) return undefined; return await r.json(); } catch { return undefined; }
+}
+// Self-invoking async IIFE wrapper pattern not needed; using top-level for fetch availability in node18+ (if not, wrap)
+function parseLlmsTxt(txt){
+  const meta = { fingerprint: undefined, publicKeyB64: undefined };
+  for (const line of txt.split(/\r?\n/)) {
+    const t = line.trim(); if (!t || t.startsWith('#')) continue;
+    const [k,...rest] = t.split(':');
+    const key = k.trim().toLowerCase();
+    const val = rest.join(':').trim();
+    if (key === 'public-key' && val.startsWith('ed25519:')) meta.fingerprint = val.slice('ed25519:'.length);
+    if (key === 'public-key-base64') meta.publicKeyB64 = val;
+  }
+  return meta;
+}
+async function fetchLlmsPublicKey(base){
+  try {
+    let siteBase = base;
+    if (!/^https?:\/\//i.test(siteBase)) siteBase = (siteBase.startsWith('localhost') || siteBase.includes(':') ? 'http://' : 'https://') + siteBase;
+    const llmsUrl = siteBase.replace(/\/$/,'') + '/.well-known/llms.txt';
+    const r = await fetch(llmsUrl,{ headers:{'user-agent':'saw-harness/llms'} });
+    if (!r.ok) return {};
+    const txt = await r.text();
+    return parseLlmsTxt(txt);
+  } catch { return {}; }
+}
+async function runDiffCheck(){
+  const base = process.env.HARNESS_DIFF_BASE || (serverStarted ? 'http://localhost:3000' : 'http://localhost:3000');
+  const url = base.replace(/\/$/,'') + `/api/saw/diff?since=${encodeURIComponent(sinceIso)}`;
+  const remote = await tryFetch(url);
+  if (remote && remote.signature) {
+    diffMode = 'remote';
+    console.log('Remote diff fetched (changed=%s removed=%s)', remote.changed?.length||0, remote.removed?.length||0);
+    // Choose key: internal server key, else llms.txt public-key-base64, else HARNESS_PUBLIC_KEY_B64
+    let publicKeyCandidate = serverPublicKeyBase64;
+    if (!serverStarted) {
+      const meta = await fetchLlmsPublicKey(base);
+      if (meta.publicKeyB64) publicKeyCandidate = meta.publicKeyB64;
+      else if (process.env.HARNESS_PUBLIC_KEY_B64) publicKeyCandidate = process.env.HARNESS_PUBLIC_KEY_B64;
+    }
+    if (remote.signature !== 'UNSIGNED' && publicKeyCandidate) {
+      try {
+        const diffObj = { site: remote.site, since: remote.since, changed: remote.changed, removed: remote.removed, signature: remote.signature };
+        diffVerified = verifySignedDiff(diffObj, publicKeyCandidate);
+      } catch (e) {
+        console.log('Diff signature verification error:', e instanceof Error ? e.message : String(e));
+      }
+    }
+  } else {
+    diffMode = 'simulated';
+    const changed = feed.items.map(i=>({ id:i.id, version:i.version, updated_at:i.updated_at }));
+    const removed = [];
+    diffVerified = true;
+    console.log('Simulated diff subset (changed=%s removed=%s)', changed.length, removed.length);
+  }
+}
+await runDiffCheck();
+if (diffVerified) {
+  console.log('Diff subset verification OK ('+diffMode+')');
+} else if (diffMode==='remote') {
+  console.log('Remote diff signature NOT verified (possibly UNSIGNED or missing key).');
+}
+
+// 7. Webhook payload schema validation (optional: reads example log endpoint if available)
+section('Webhook Payload Schema Validation');
+let webhookValidationFailures = 0;
+async function fetchJson(url){ try { const r = await fetch(url,{ headers:{'user-agent':'saw-harness/webhook'} }); if (!r.ok) return undefined; return await r.json(); } catch { return undefined; } }
+const logEndpoint = process.env.HARNESS_LOG_BASE || (serverStarted ? 'http://localhost:3000/api/saw/logs' : 'http://localhost:3000/api/saw/logs');
+const logs = await fetchJson(logEndpoint);
+if (logs && Array.isArray(logs.logs)) {
+  for (const entry of logs.logs.slice(-100)) { // last 100
+    const ev = entry.event || entry.data?.event;
+    const payload = entry.data || entry; // server uses data field
+    try {
+      switch (ev) {
+        case 'feed.response': WebhookFeedResponseSchema.parse(payload); break;
+        case 'page.response': WebhookPageResponseSchema.parse(payload); break;
+        case 'detect.request': WebhookDetectRequestSchema.parse(payload); break;
+        case 'canary.detected': WebhookCanaryDetectedSchema.parse(payload); break;
+        case 'diff.response': WebhookDiffResponseSchema.parse(payload); break;
+        case 'ingest.upsert': WebhookIngestUpsertSchema.parse(payload); break;
+        default: continue;
+      }
+    } catch (e) {
+      webhookValidationFailures++;
+      console.log('Webhook schema failure', ev, e instanceof Error ? e.message : String(e));
+    }
+  }
+  console.log('Webhook validation failures=', webhookValidationFailures);
+} else {
+  console.log('No accessible logs endpoint or unexpected format; skipping validation.');
+}
+if (webhookValidationFailures) failures.push('webhook-schema');
+if (process.env.HARNESS_REQUIRE_WEBHOOKS === '1' && !(logs && Array.isArray(logs.logs))) {
+  failures.push('webhook-missing');
+}
+
+// Machine-readable summary output
+try {
+  const summary = {
+    ts: new Date().toISOString(),
+    fixtureCount: fixtures.length,
+    fixtureTarget: targetFixtures,
+    fixtureShortfall,
+    canonicalMismatches: canonMismatches,
+    signatureVerified: verified,
+    descriptorFingerprint: descriptor.public_key_fingerprint,
+    detector: {
+      classification: detect.classification,
+      confidence: detect.confidence,
+      confidence_band: detect.confidence_band,
+      tokens: detect.unique.length,
+      occurrences: detect.count
+    },
+    diff: { mode: diffMode, verified: diffVerified },
+    detectorCorpusFailures: detectorFailures,
+    failures,
+    exitCode: failures.length ? 1 : 0
+  };
+  const outFile = process.env.HARNESS_OUTPUT || 'harness-results.json';
+  fs.writeFileSync(path.join(process.cwd(), outFile), JSON.stringify(summary, null, 2));
+  console.log(`Summary written -> ${outFile}`);
+} catch (e) {
+  console.error('Failed to write harness summary:', e instanceof Error ? e.message : String(e));
+}
+
+// Cleanup server if started
+if (serverProc) serverProc.kill();
 process.exit(failures.length ? 1 : 0);

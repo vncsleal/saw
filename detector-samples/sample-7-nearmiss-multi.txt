@@ -1,0 +1,9 @@
+Edge punctuation & unicode; near-misses broken by underscores/dashes before reaching 8 contiguous chars:
+«c-short1»
+“c-XYZ123”
+emoji🚀 c-TO0Sho
+c-TO0S_h
+c-TO__Sh
+c-AB12_CD
+c-ABC_DEF
+Valid control token (ONLY expected): c-OnlyTokA
