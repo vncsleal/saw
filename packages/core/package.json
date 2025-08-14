@@ -1,6 +1,6 @@
 {
   "name": "@saw/core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "SAW core library: canonicalization, signed feeds, diff subsets, canaries, detection, schemas.",
   "type": "module",
   "license": "MIT",

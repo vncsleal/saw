@@ -1,6 +1,6 @@
 {
   "name": "@saw/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "SAW CLI: canonicalize, generate & verify signed feeds, diffs, canary detection.",
   "bin": {
     "saw": "dist/index.js"
@@ -36,7 +36,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@saw/core": "0.1.0"
+    "@saw/core": "^0.1.1"
   },
   "publishConfig": {
     "access": "public"

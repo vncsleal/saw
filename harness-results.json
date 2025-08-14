@@ -1,11 +1,11 @@
 {
-  "ts": "2025-08-14T20:15:07.816Z",
+  "ts": "2025-08-14T20:27:36.886Z",
   "fixtureCount": 200,
   "fixtureTarget": 200,
   "fixtureShortfall": 0,
   "canonicalMismatches": 0,
   "signatureVerified": true,
-  "descriptorFingerprint": "ed25519:15c92c50",
+  "descriptorFingerprint": "ed25519:597190fc",
   "detector": {
     "classification": "single",
     "confidence": 0.7,

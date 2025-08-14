@@ -1,6 +1,6 @@
 {
   "name": "saw-monorepo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "description": "SAW monorepo: core library & CLI for signed structured content feeds, diffs, and canary detection.",
   "repository": {
@@ -17,7 +17,9 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "tsc -b packages/core packages/cli",
+  "build": "npm run build:core && npm run build:cli",
+  "build:core": "rm -rf packages/core/dist && tsc -b packages/core",
+  "build:cli": "rm -rf packages/cli/dist && tsc -b packages/cli",
     "test": "vitest run --reporter basic",
     "coverage": "vitest run --coverage",
     "lint": "eslint . --ext .ts,.js",
