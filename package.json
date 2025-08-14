@@ -1,0 +1,29 @@
+{
+  "name": "saw-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "tsc -b packages/core packages/cli",
+    "test": "vitest run --reporter basic",
+    "lint": "eslint . --ext .ts,.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev:cli": "npm run build --silent && node packages/cli/dist/index.js",
+    "test:canon": "node scripts/test-canonicalization.js"
+  ,"determinism": "npm run build --silent && node scripts/determinism-check.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "eslint": "^8.56.0",
+  "@typescript-eslint/parser": "^7.7.0",
+  "@typescript-eslint/eslint-plugin": "^7.7.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.5.0",
+    "zod": "^3.23.0",
+    "tweetnacl": "^1.0.3"
+  },
+  "packageManager": "npm@10.0.0"
+}

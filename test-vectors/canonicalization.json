@@ -1,0 +1,83 @@
+{
+  "description": "Canonicalization test vectors for SAW canonical-json/1",
+  "vectors": [
+    {
+      "name": "object key order",
+      "input": {"b":1,"a":2},
+      "canonical": "{\"a\":2,\"b\":1}",
+      "sha256": "d3626ac30a87e6f7a6428233b3c68299976865fa5508e4267c5415c76af7a772"
+    },
+    {
+      "name": "number normalization",
+      "input": {"x":1.0,"y":0.5000,"z":100.000},
+      "canonical": "{\"x\":1,\"y\":0.5,\"z\":100}",
+      "sha256": "8608a3451a99b97d9f91dcbcaa514a6a33e6607fa1d2c2791625b2762afba416"
+    },
+    {
+      "name": "nested arrays",
+      "input": {"a":[{"z":2,"y":1},{"b":1,"a":2}]},
+      "canonical": "{\"a\":[{\"y\":1,\"z\":2},{\"a\":2,\"b\":1}]}",
+      "sha256": "8971ff47c58a79a1a94c99ada0665d9e273be97a407d72afd9e493fe0a023117"
+    },
+    {
+      "name": "unicode preservation",
+      "input": {"emoji":"🔥","accent":"café"},
+      "canonical": "{\"accent\":\"café\",\"emoji\":\"🔥\"}",
+      "sha256": "7895431def144698f10f4d1dabb219a21ab2b205707f8a29ee376661c3a4d87c"
+    },
+    {
+      "name": "boolean null mix",
+      "input": {"z":null,"a":false,"m":true},
+      "canonical": "{\"a\":false,\"m\":true,\"z\":null}",
+      "sha256": "79b56afdfa1222edd16f9ae4d623494367606adf8e71fd31de486752a098c932"
+    },
+    {
+      "name": "signature exclusion example",
+      "input": {"site":"ex","generated_at":"2025-08-14T00:00:00Z","items":[],"signature":"IGNORED"},
+      "canonical": "{\"generated_at\":\"2025-08-14T00:00:00Z\",\"items\":[],\"signature\":\"IGNORED\",\"site\":\"ex\"}",
+      "sha256": "648d1733dd789ba94d60ac2085efb0e470f3187c515167c627c2bd1af5de360c"
+    },
+    {
+      "name": "large ordering stability",
+      "input": {"k10":10,"k1":1,"k2":2,"k9":9,"k3":3,"k4":4,"k5":5,"k6":6,"k7":7,"k8":8},
+      "canonical": "{\"k1\":1,\"k10\":10,\"k2\":2,\"k3\":3,\"k4\":4,\"k5\":5,\"k6\":6,\"k7\":7,\"k8\":8,\"k9\":9}",
+      "sha256": "b93acd97ba8058aa06caf73927bf0cfe53ac9263ff83658f387430efa63ae3a1"
+    }
+    ,{
+      "name": "exponent small",
+      "input": {"n":0.000001},
+      "canonical": "{\"n\":0.000001}",
+  "sha256": "28343867a0be00aee19f81aa90cfd6c646878b9303fa15410d16bfd3f8894578"
+    }
+    ,{
+      "name": "exponent large",
+      "input": {"n":1230},
+      "canonical": "{\"n\":1230}",
+  "sha256": "615f9a1451ef221a584c58620e88650e9cb7989def8a6a6ea27a8d30bf80f0f2"
+    }
+    ,{
+      "name": "negative exponent",
+      "input": {"n":-0.0025},
+      "canonical": "{\"n\":-0.0025}",
+  "sha256": "0d1b8fe19655292c46af20bb514ee3e0f80c20eeaec1670f1d2fdd4dbcac507c"
+    }
+    ,{
+      "name": "max safe int",
+      "input": {"n":9007199254740991},
+      "canonical": "{\"n\":9007199254740991}",
+  "sha256": "e1da48c6a6089f06ecb4e0a2259e658e3786b2420f52baccdf929ec6460d7b41"
+    }
+    ,{
+      "name": "empty containers",
+      "input": {"b":{},"a":[]},
+      "canonical": "{\"a\":[],\"b\":{}}",
+  "sha256": "9959f7ea5ff37e0cf81634a894845a335eb6e26fbad0877944e9bc009b4f0644"
+    }
+    ,{
+      "name": "deep nesting",
+      "input": {"z":{"b":{"c":[{"d":1,"a":2}]}}},
+      "canonical": "{\"z\":{\"b\":{\"c\":[{\"a\":2,\"d\":1}]}}}",
+  "sha256": "58021cb20dda4dbd4ee4246976a725a58a9ef48e66f424f1cabde320e651fb3b"
+    }
+  ]
+}

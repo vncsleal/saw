@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/saw/feed.schema.json",
+  "title": "SAW Feed",
+  "type": "object",
+  "required": ["site", "generated_at", "items", "signature"],
+  "additionalProperties": false,
+  "properties": {
+    "site": {"type": "string"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "cursor": {"type": "string"},
+    "since": {"type": "string", "format": "date-time"},
+    "items": {"type": "array", "items": {"$ref": "./block.schema.json"}},
+    "signature": {"type": "string"},
+    "signed_fields": {"type": "array", "items": {"type": "string"}},
+    "session_canary": {"type": "string"}
+  }
+}
