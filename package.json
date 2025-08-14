@@ -1,6 +1,6 @@
 {
   "name": "saw-monorepo",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": false,
   "description": "SAW monorepo: core library & CLI for signed structured content feeds, diffs, and canary detection.",
   "repository": {

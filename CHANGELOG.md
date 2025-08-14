@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is inspired by Keep a Changelog and adheres to Semantic Versioning.
 
+## [0.1.2] - 2025-08-14  
+[![saw-core 0.1.2](https://img.shields.io/npm/v/saw-core.svg?label=saw-core)](https://www.npmjs.com/package/saw-core) [![saw-cli 0.1.2](https://img.shields.io/npm/v/saw-cli.svg?label=saw-cli)](https://www.npmjs.com/package/saw-cli)
+### Added
+- Package-level READMEs for `saw-core` and `saw-cli` (usage, examples, security notes) now included in published tarballs.
+- Root README security & key handling section.
+
+### Changed
+- Bumped `saw-core` and `saw-cli` to 0.1.2 (no runtime code changes).
+
+### Notes
+- This release exists solely to surface new documentation on npm; logic identical to 0.1.1.
+
 ## [0.1.1] - 2025-08-14  
 [![saw-core 0.1.1](https://img.shields.io/npm/v/saw-core.svg?label=saw-core)](https://www.npmjs.com/package/saw-core) [![saw-cli 0.1.1](https://img.shields.io/npm/v/saw-cli.svg?label=saw-cli)](https://www.npmjs.com/package/saw-cli)
 ### Changed
