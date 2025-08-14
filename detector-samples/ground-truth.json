@@ -1,9 +1,0 @@
-[
-  {"file":"sample-1-none.txt","unique":0,"classification":"none"},
-  {"file":"sample-2-single.txt","unique":1,"classification":"single"},
-  {"file":"sample-3-repeat.txt","unique":1,"classification":"single"},
-  {"file":"sample-4-multi.txt","unique":2,"classification":"multiple"},
-  {"file":"sample-5-noise.txt","unique":1,"classification":"single"},
-  {"file":"sample-6-nearmiss.txt","unique":1,"classification":"single"},
-  {"file":"sample-7-nearmiss-multi.txt","unique":1,"classification":"single"}
-]

@@ -5,7 +5,7 @@ import { hashCanonical } from '../src/core/canonicalize.js';
 
 interface Vector { name: string; input: unknown; canonical: string; sha256: string; }
 
-const vectorsPath = path.join(process.cwd(), 'test-vectors', 'canonicalization.json');
+const vectorsPath = path.join(process.cwd(), 'packages', 'cli', 'test-vectors', 'canonicalization.json');
 const raw = fs.readFileSync(vectorsPath,'utf8');
 const data = JSON.parse(raw) as { vectors: Vector[] };
 
