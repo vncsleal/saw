@@ -120,9 +120,21 @@ const server = http.createServer((req,res)=>{
       const mapped = mapDetectedTokens(det.unique, ephemeral);
       res.setHeader('content-type','application/json');
       res.end(JSON.stringify({ detection: det, mapping: mapped }));
-  const detData = { tokens: det.unique.length, matched: mapped.matched.length };
-  log.write({ ts:new Date().toISOString(), level:'info', event:'detect.request', data: detData });
-  emitWebhook('detect.request', { ...detData, matched: mapped.matched });
+      const detData = { tokens: det.unique.length, matched: mapped.matched.length, confidence: det.confidence };
+      log.write({ ts:new Date().toISOString(), level:'info', event:'detect.request', data: detData });
+      emitWebhook('detect.request', { ...detData, matched: mapped.matched });
+      if (det.unique.length) {
+        // Emit standardized canary.detected webhook event
+        emitWebhook('canary.detected', {
+          tokens: det.unique,
+          totalOccurrences: det.count,
+          matched: mapped.matched,
+          unknown: mapped.unknown,
+          confidence: det.confidence,
+          classification: det.classification,
+          rationale: det.rationale
+        });
+      }
     })();
   } else {
     res.statusCode = 404; res.end('not found');

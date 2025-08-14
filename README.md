@@ -117,6 +117,43 @@ Config environment vars:
 
 Tokens expire (default 5–10 min) and are not retained long-term. Classification values: none | single | multiple.
 
+## Verification Ops Harness
+The repository includes an internal verification harness script (`scripts/run-verification-harness.mjs`) that consolidates key Phase 4 readiness checks:
+
+Sections executed:
+1. Canonicalization determinism across the 200-fixture corpus (verifies stored `canonical` + `sha256` fields). 
+2. Feed signing & signature verification sanity (fresh keypair each run).
+3. Agent descriptor fingerprint generation.
+4. Detector sample run (issues an ephemeral canary, validates detection & confidence output).
+5. Detector corpus accuracy (compares outputs over `detector-samples/ground-truth.json`).
+
+Run it locally:
+```bash
+npm run harness
+```
+Exit code is non‑zero if any section fails or fixture count falls below target (default 200).
+
+Environment overrides:
+```
+FIXTURE_TARGET=250 npm run harness   # require larger corpus
+```
+
+### Extending the Harness
+Add new sections inside the script and append failure conditions to the `failures` array. Planned additions include diff subset verification and webhook schema validation against Zod schemas.
+
+### Detector Corpus Workflow
+The `detector-samples/` directory contains sample `.txt` files plus `ground-truth.json` defining expected `unique` count and `classification` for each sample. To add new samples:
+1. Create `sample-<n>-<label>.txt` with representative content.
+2. Append an entry to `ground-truth.json` with `{ "file": "sample-<n>-<label>.txt", "unique": <int>, "classification": "none|single|multiple" }`.
+3. Run the harness; ensure `Detector failures=0`.
+4. Include near‑miss tokens (e.g., `c-abc123` too short) in future with a separate label—these should not increment the `unique` count.
+
+### Confidence & Rationale
+The detector returns `confidence` (0–1) and a brief `rationale`. Future work may bucket confidence into bands (e.g., High/Medium/Low) for downstream alerting.
+
+### Machine-Readable Output (Future)
+Planned: emit a JSON summary file (e.g., `harness-results.json`) for CI ingestion.
+
 ## Future Enhancements
 - Ephemeral session canaries + detector (Phase 4)
 - Extension registry & search stub (Phase 5)

@@ -27,12 +27,15 @@ describe('EphemeralCanaryStore', () => {
 });
 
 describe('detectCanaries', () => {
-  it('classifies single vs multiple', () => {
+  it('classifies single vs multiple with confidence', () => {
     const single = detectCanaries('Example c-ABC12345 more');
     expect(single.classification).toBe('single');
+    expect(single.confidence).toBeGreaterThan(0);
     const multi = detectCanaries('A c-AAAA1111 and c-BBBB2222 text');
     expect(multi.classification).toBe('multiple');
+    expect(multi.confidence).toBeGreaterThan(single.confidence);
     const none = detectCanaries('Nothing here');
     expect(none.classification).toBe('none');
+    expect(none.confidence).toBe(0);
   });
 });

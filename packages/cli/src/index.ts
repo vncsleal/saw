@@ -178,7 +178,7 @@ async function main() {
           }
           text = filtered.join(' ');
         }
-        const local = detectCanaries(text);
+  const local = detectCanaries(text);
         if (!remoteBase) {
           console.log(JSON.stringify(local));
           process.exit(0);

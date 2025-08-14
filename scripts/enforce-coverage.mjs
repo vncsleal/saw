@@ -46,15 +46,20 @@ if (summary.total) total = summary.total; else if (coreKeys.length) {
   total.functions.pct = agg.functions / coreKeys.length;
   total.branches.pct = agg.branches / coreKeys.length;
 }
-const threshold = 55; // temporary while new tests added; will raise incrementally
+const thresholds = {
+  lines: parseInt(process.env.COV_LINES||'95',10),
+  statements: parseInt(process.env.COV_STATEMENTS||'95',10),
+  functions: parseInt(process.env.COV_FUNCTIONS||'85',10),
+  branches: parseInt(process.env.COV_BRANCHES||'80',10)
+};
 const failed = Object.entries({
   lines: total.lines.pct,
   statements: total.statements.pct,
   functions: total.functions.pct,
   branches: total.branches.pct
-}).filter(([_,v])=>v < threshold);
+}).filter(([k,v])=>v < thresholds[k]);
 if (failed.length) {
-  console.error('Coverage below threshold', failed);
+  console.error('Coverage below threshold(s)', failed, 'thresholds', thresholds);
   process.exit(1);
 }
-console.log('Coverage OK >=', threshold, total);
+console.log('Coverage OK thresholds', thresholds, total);

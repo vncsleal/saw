@@ -37,7 +37,7 @@ export class EphemeralCanaryStore {
 }
 
 // Detector utility
-export interface DetectResult { tokens: string[]; unique: string[]; count: number; classification: string; }
+export interface DetectResult { tokens: string[]; unique: string[]; count: number; classification: string; confidence: number; rationale: string; }
 
 // Spec tokens length 8-10 chars after prefix
 const DEFAULT_REGEX = /c-[A-Za-z0-9]{8,10}/g;
@@ -48,7 +48,26 @@ export function detectCanaries(text: string, pattern: RegExp = DEFAULT_REGEX): D
   let classification = 'none';
   if (unique.length === 1) classification = 'single';
   else if (unique.length > 1) classification = 'multiple';
-  return { tokens: matches, unique, count: matches.length, classification };
+  // Simple confidence heuristic:
+  // Base score per unique token, penalize excessive repeats, cap at 1.
+  // 0 tokens => 0.0
+  // 1 unique token seen >=2 times => >=0.7
+  // >1 unique tokens => 0.9+ depending on diversity
+  let confidence = 0;
+  let rationale = 'no tokens detected';
+  if (unique.length === 1) {
+    const occurrences = matches.length;
+    confidence = Math.min(1, 0.4 + 0.15 * Math.min(occurrences,4));
+    rationale = `one token repeated ${occurrences} time(s)`;
+  } else if (unique.length > 1) {
+    const diversity = unique.length;
+    const total = matches.length;
+    const repeatPenalty = (total - diversity) / Math.max(total,1); // fraction of repeats
+    confidence = Math.min(1, 0.6 + 0.3 * (diversity/5) - 0.2 * repeatPenalty);
+    if (confidence < 0) confidence = 0;
+    rationale = `${diversity} unique tokens (${total} occurrences)`;
+  }
+  return { tokens: matches, unique, count: matches.length, classification, confidence: Number(confidence.toFixed(2)), rationale };
 }
 
 export interface DetectionMapping { matched: Array<{ token: string; requestId: string }>; unknown: string[]; }

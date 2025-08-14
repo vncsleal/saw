@@ -1,0 +1,1 @@
+Unicode noise Ω≈ç plus token near punctuation c-EEEE5555, and trailing variant c-EEEE5555; plus fake near miss c-ABC12 (too short).
