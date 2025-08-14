@@ -101,11 +101,49 @@ Signature is Ed25519 over the canonicalized subset (no `signature` field). CLI `
 ## Logging Endpoint
 Example server exposes `/api/saw/logs` (demo only) showing recent structured events: feed responses, diffs, ingests.
 
+## Ephemeral Canaries & Detection (Phase 4)
+Experimental: server issues short-lived (TTL) tokens (`c-XXXXXXXXXX`) in:
+- `X-SAW-EPHEMERAL` header on `/api/saw/feed`
+- Hidden HTML node & comment on `/` page
+
+Use `saw detect <text|file>` to extract tokens or `saw detect <text|file> --remote example.com` to map them via remote `/api/saw/detect`.
+
+Example detection payload POST:
+`POST /api/saw/detect { "text": "Scraped text containing c-ABCDEFGH12" }` returns mapping of recognized tokens to request IDs while within TTL.
+
+Config environment vars:
+`SAW_EPHEMERAL_TTL_MS` (default 300000) – token lifetime.
+`SAW_DETECT_WEBHOOK` – if set, server POSTs JSON events for feed.response, page.response, detect.request.
+
+Tokens expire (default 5–10 min) and are not retained long-term. Classification values: none | single | multiple.
+
 ## Future Enhancements
 - Ephemeral session canaries + detector (Phase 4)
 - Extension registry & search stub (Phase 5)
 - Additional language SDKs
 - Performance benchmarks & 200+ canonicalization fixture corpus
+
+## Benchmarks
+## Coverage Enforcement
+Run with threshold (initial 70%):
+```bash
+npm run coverage:enforce
+```
+Increase threshold to 90% after expanding fixtures (edit `scripts/enforce-coverage.mjs`).
+
+## Webhook Receiver (Demo)
+Start a local receiver to observe detection/feed events:
+```bash
+node scripts/webhook-receiver.mjs &
+SAW_DETECT_WEBHOOK=http://localhost:4001 node examples/node/server.js
+```
+Then issue feed or detect calls; events print with `# webhook event` prefix.
+Run feed build micro-benchmark (rough, local):
+```bash
+npm run build --silent
+node scripts/benchmark-feed.mjs
+```
+Outputs rows of `block_count\tms`. Target p95 for 100 blocks < 250ms (Phase KPI). Use multiple runs & average for stability.
 
 ## License
 MIT

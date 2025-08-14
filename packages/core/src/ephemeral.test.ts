@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { EphemeralCanaryStore, detectCanaries } from './ephemeral.js';
+import { EphemeralCanaryStore, detectCanaries, mapDetectedTokens } from './ephemeral.js';
 
 describe('EphemeralCanaryStore', () => {
   it('issues and looks up tokens within TTL', () => {
@@ -13,6 +13,16 @@ describe('EphemeralCanaryStore', () => {
     const token = store.issue('req-2');
     await new Promise(r=>setTimeout(r, 25));
     expect(store.lookup(token)).toBeUndefined();
+  });
+  it('maps detected tokens including unknown after expiry', async () => {
+    const store = new EphemeralCanaryStore(5); // very short TTL
+    const token = store.issue('req-map');
+    const firstMap = mapDetectedTokens([token], store);
+    expect(firstMap.matched.length).toBe(1);
+    await new Promise(r=>setTimeout(r, 15));
+    const secondMap = mapDetectedTokens([token], store);
+    expect(secondMap.matched.length).toBe(0);
+    expect(secondMap.unknown).toContain(token);
   });
 });
 

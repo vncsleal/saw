@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 function printHelp() {
-  console.log(`SAW CLI (early scaffold)\nCommands:\n  canon <json|file>   Canonicalize inline JSON string OR JSON file path\n  hash <json>         Canonicalize + SHA256 hash\n  keygen              Generate Ed25519 key pair\n  keygen-api          Generate HMAC API key (Phase 3)\n  list-api            List local API key IDs\n  init                Scaffold config & sample block\n  generate <site>     Build signed feed from content/blocks\n  verify <feed.json|site> <publicKeyBase64> [--json]  Verify local file or remote site\n  diff <site> <publicKeyBase64> --since <ISO>  Fetch & verify remote diff\n  detect <text|file>  Detect embedded canary tokens in text or file\n  help                Show help`);
+  console.log(`SAW CLI (early scaffold)\nCommands:\n  canon <json|file>           Canonicalize inline JSON string OR JSON file path\n  hash <json>                 Canonicalize + SHA256 hash\n  keygen                      Generate Ed25519 key pair\n  keygen-api                  Generate HMAC API key (Phase 3)\n  list-api                    List local API key IDs\n  init                        Scaffold config & sample block\n  generate <site>             Build signed feed from content/blocks\n  verify <feed.json|site> <publicKeyBase64> [--json]  Verify local file or remote site\n  diff <site> <publicKeyBase64> --since <ISO>        Fetch & verify remote diff\n  detect <text|file> [--remote <base>]              Detect canary tokens (optionally map via remote)\n  help                        Show help`);
 }
 
 async function main() {
@@ -165,12 +165,40 @@ async function main() {
   break;
       case 'detect': {
         const target = rest[0];
-        if (!target) { console.error('Usage: saw detect <text|file>'); process.exit(1); }
+        if (!target) { console.error('Usage: saw detect <text|file> [--remote <base>]'); process.exit(1); }
+        const remoteIdx = rest.indexOf('--remote');
+        const remoteBase = remoteIdx !== -1 ? rest[remoteIdx+1] : undefined;
         let text: string;
-        if (fs.existsSync(target)) text = fs.readFileSync(target,'utf8'); else text = rest.join(' ');
-        const result = detectCanaries(text);
-        console.log(JSON.stringify(result));
-        process.exit(0);
+        if (fs.existsSync(target)) text = fs.readFileSync(target,'utf8'); else {
+          // Exclude --remote arguments from inline text
+          const filtered: string[] = [];
+          for (let i=0;i<rest.length;i++) {
+            if (rest[i] === '--remote') { i++; continue; }
+            filtered.push(rest[i]);
+          }
+          text = filtered.join(' ');
+        }
+        const local = detectCanaries(text);
+        if (!remoteBase) {
+          console.log(JSON.stringify(local));
+          process.exit(0);
+        }
+        let base = remoteBase;
+        if (!/^https?:\/\//i.test(base)) {
+          if (base.startsWith('localhost') || base.includes(':')) base = 'http://' + base; else base = 'https://' + base;
+        }
+        try {
+          const res = await fetch(base.replace(/\/$/, '') + '/api/saw/detect', { method:'POST', headers:{ 'content-type':'application/json','user-agent':'saw-cli/detect' }, body: JSON.stringify({ text }) });
+          if (!res.ok) throw new Error('HTTP '+res.status);
+          const remote = await res.json();
+          console.log(JSON.stringify({ local, remote }));
+          process.exit(0);
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : String(e);
+          console.error('Remote detection failed:', msg);
+          console.log(JSON.stringify({ local, remoteError: msg }));
+          process.exit(2);
+        }
       }
   break;
   default:

@@ -39,7 +39,8 @@ export class EphemeralCanaryStore {
 // Detector utility
 export interface DetectResult { tokens: string[]; unique: string[]; count: number; classification: string; }
 
-const DEFAULT_REGEX = /c-[A-Za-z0-9]{8,12}/g;
+// Spec tokens length 8-10 chars after prefix
+const DEFAULT_REGEX = /c-[A-Za-z0-9]{8,10}/g;
 
 export function detectCanaries(text: string, pattern: RegExp = DEFAULT_REGEX): DetectResult {
   const matches = text.match(pattern) || [];
@@ -48,4 +49,16 @@ export function detectCanaries(text: string, pattern: RegExp = DEFAULT_REGEX): D
   if (unique.length === 1) classification = 'single';
   else if (unique.length > 1) classification = 'multiple';
   return { tokens: matches, unique, count: matches.length, classification };
+}
+
+export interface DetectionMapping { matched: Array<{ token: string; requestId: string }>; unknown: string[]; }
+
+export function mapDetectedTokens(tokens: string[], store: EphemeralCanaryStore): DetectionMapping {
+  const matched: Array<{ token: string; requestId: string }> = [];
+  const unknown: string[] = [];
+  for (const t of tokens) {
+    const rec = store.lookup(t);
+    if (rec) matched.push({ token: t, requestId: rec.requestId }); else unknown.push(t);
+  }
+  return { matched, unknown };
 }
