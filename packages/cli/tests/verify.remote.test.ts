@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createServer, Server } from 'node:http';
 import { generateKeyPairFromSeed, buildFeed, generateLlmsTxt, Feed } from 'saw-core';
-import { verifyRemote } from './verify.js';
+import { verifyRemote } from '../src/verify.js';
 import { createHash } from 'node:crypto';
 
 let server: Server;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canonicalize, hashCanonical } from './canonicalize';
+import { canonicalize, hashCanonical } from '../src/canonicalize.js';
 import fs from 'node:fs';
 import path from 'node:path';
 
