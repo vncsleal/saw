@@ -2,7 +2,7 @@
   "id": "block:hello",
   "type": "doc",
   "title": "Hello",
-  "content": "Hello *SAW*",
   "version": "v1",
-  "updated_at": "2025-08-14T00:00:00Z"
+  "updated_at": "2025-08-14T00:00:00Z",
+  "content": "Hello"
 }

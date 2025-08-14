@@ -1,0 +1,30 @@
+{
+  "site": "example.com",
+  "generated_at": "2025-08-14T18:11:46.354Z",
+  "items": [
+    {
+      "id": "block:hello",
+      "type": "doc",
+      "title": "Hello",
+      "version": "v1",
+      "updated_at": "2025-08-14T00:00:00Z",
+      "block_hash": "35b263e3ef39e06a",
+      "canary": "pending"
+    },
+    {
+      "id": "block:sample",
+      "type": "doc",
+      "title": "Sample",
+      "version": "v1",
+      "updated_at": "2025-08-14T17:57:31.668Z",
+      "block_hash": "f65483af85dea3dc",
+      "canary": "pending"
+    }
+  ],
+  "signature": "PUDl+ssJyg9EYDRJ3nPBl3uOAV9qXl31dt5IT+z6YFye4UgN03wjqZ3yLVtmWBp+NIsdO4tqcNNafn2MA/N/Aw==",
+  "signed_fields": [
+    "site",
+    "generated_at",
+    "items"
+  ]
+}

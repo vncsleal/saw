@@ -37,8 +37,44 @@ function canon(v: any): string {
 }
 
 function expandExponent(s: string): string {
-  // Minimal stub; Phase 1 will supply full implementation; currently returns numeric string unchanged.
-  return Number(s).toString();
+  // Convert exponent form to plain decimal without scientific notation.
+  const m = s.match(/^(-?)(\d+)(?:\.(\d+))?[eE]([+-]?\d+)$/);
+  if (!m) return s; // not exponent form
+  const sign = m[1];
+  let intPart = m[2];
+  let fracPart = m[3] || '';
+  let exp = parseInt(m[4], 10);
+  if (exp === 0) return sign + intPart + (fracPart ? '.' + fracPart : '');
+  if (exp > 0) {
+    // shift decimal right
+    while (exp > 0 && fracPart.length) {
+      intPart += fracPart[0];
+      fracPart = fracPart.slice(1);
+      exp--;
+    }
+    if (exp > 0) intPart = intPart + '0'.repeat(exp);
+  const out = sign + intPart + (fracPart.length ? '.' + fracPart : '');
+  return out;
+  } else {
+    exp = -exp; // negative exponent -> shift decimal left
+    // Move digits from intPart into fracPart
+    while (exp > 0) {
+      if (intPart.length === 0) {
+        fracPart = '0' + fracPart;
+      } else {
+        fracPart = intPart[intPart.length - 1] + fracPart;
+        intPart = intPart.slice(0, -1);
+      }
+      exp--;
+    }
+    if (intPart.length === 0) intPart = '0';
+    // Trim leading zeros in intPart but keep at least one
+    intPart = intPart.replace(/^0+/, '') || '0';
+    // Remove trailing zeros from fracPart then trailing dot handled by caller
+    // We cannot remove them here yet since we want canonical decimal trimming logic later.
+  const out = sign + intPart + '.' + fracPart;
+  return out; // trailing zero trimming occurs in caller
+  }
 }
 
 import crypto from 'crypto';

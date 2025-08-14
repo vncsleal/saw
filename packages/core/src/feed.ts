@@ -1,5 +1,6 @@
-import { Block, BlockSchema, FeedSchema } from './schemas';
-import { canonicalize, sha256Hex } from './canonicalize';
+import { Block, BlockSchema, FeedSchema } from './schemas.js';
+import { canonicalize, sha256Hex } from './canonicalize.js';
+import { signFeed } from './crypto.js';
 
 export interface BuildFeedOptions {
   site: string;
@@ -8,7 +9,7 @@ export interface BuildFeedOptions {
   sign?: (canonicalSubset: string) => string; // returns base64 signature (Phase 1)
 }
 
-export function buildFeed(opts: BuildFeedOptions) {
+export function buildFeed(opts: BuildFeedOptions & { secretKeyBase64?: string }) {
   const generated_at = opts.generatedAt || new Date().toISOString();
   const items = opts.blocks.map(b => {
     BlockSchema.parse(b); // validate
@@ -25,7 +26,12 @@ export function buildFeed(opts: BuildFeedOptions) {
       canary: b.canary || 'pending'
     };
   });
-  const feed = { site: opts.site, generated_at, items, signature: 'UNSIGNED' };
+  const feedSubset = { site: opts.site, generated_at, items };
+  let signature = 'UNSIGNED';
+  if (opts.secretKeyBase64) {
+    signature = signFeed(feedSubset, opts.secretKeyBase64);
+  }
+  const feed = { ...feedSubset, signature, signed_fields: ['site','generated_at','items'] };
   FeedSchema.pick({ site:true, generated_at:true, items:true }).parse(feed);
   return feed;
 }

@@ -1,0 +1,12 @@
+{
+  "seed": "saw-golden-v1",
+  "public_key_base64": "pCf9T30c10nU1LpGQyoPglXp82QerRuO3kNtUsafenU=",
+  "feed_subset": {
+    "site": "example.com",
+    "generated_at": "2025-01-01T00:00:00.000Z",
+    "items": [
+      {"id":"block:x","type":"doc","title":"X","version":"v1","updated_at":"2025-01-01T00:00:00.000Z","block_hash":"deadbeefcafebabe","canary":"pending"}
+    ]
+  },
+  "signature_base64": "dgqBlQenKkc6bjMw+qj7A4uFd5CrFBiVtjiDmpUrD5zAYCKigWjWMc4tVaCfNdPcOlsufyPHiCMvT6nPb5TPBA=="
+}
