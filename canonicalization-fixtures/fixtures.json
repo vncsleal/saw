@@ -1,0 +1,12 @@
+[
+  {"name":"numbers-basic","input":{"b":2,"a":1}},
+  {"name":"unicode-escape","input":{"emoji":"😀","accent":"café"}},
+  {"name":"array-nesting","input":{"list":[{"k":2},{"k":1}],"z":0}},
+  {"name":"scientific-notation","input":{"n":1e6,"m":5e-4}},
+  {"name":"booleans-null","input":{"t":true,"f":false,"n":null}},
+  {"name":"deep-object","input":{"z":{"y":{"x":1}},"a":0}},
+  {"name":"mixed-types","input":{"arr":[1,"2",true,null,{"k":"v"}],"o":{"b":2,"a":1}}},
+  {"name":"empty-structures","input":{"emptyArr":[],"emptyObj":{},"val":0}},
+  {"name":"ordering-stability","input":{"m":1,"a":2,"z":3,"k":4,"b":5}},
+  {"name":"float-precision","input":{"p":0.0000001,"q":1000000.0000000}}
+]

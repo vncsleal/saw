@@ -1,26 +1,14 @@
 import http from 'node:http';
-import { canonicalize, signFeed } from '../../packages/core/dist/index.js';
+import { buildFeed } from '../../packages/core/dist/index.js';
+import { deferredParagraph, fragmentationUtility, clientBootstrap } from './antiScrape.js';
 
-const blocks = [
-  { id:'block:hello', type:'doc', title:'Hello', content:'Hello *SAW*', version:'v1', updated_at: new Date().toISOString() }
-];
-
-function buildFeed() {
-  const items = blocks.map(b=>({
-    id: b.id,
-    type: b.type,
-    title: b.title,
-    version: b.version,
-    updated_at: b.updated_at,
-    block_hash: 'TODO',
-    canary: 'TODO'
-  }));
-  return { site:'example.local', generated_at:new Date().toISOString(), items, signature:'UNSIGNED' };
-}
+const blocks = [{ id:'block:hello', type:'doc', title:'Hello', content:'Hello *SAW*', version:'v1', updated_at: new Date().toISOString() }];
 
 const server = http.createServer((req,res)=>{
   if (req.url === '/api/saw/feed') {
-    const feed = buildFeed();
+    const secret = process.env.SAW_SECRET_KEY;
+    const canarySecret = process.env.SAW_CANARY_SECRET;
+    const feed = buildFeed({ site:'example.local', blocks, secretKeyBase64: secret, canarySecret });
     const body = JSON.stringify(feed);
     res.setHeader('content-type','application/json');
     res.end(body);
@@ -31,11 +19,18 @@ const server = http.createServer((req,res)=>{
     let signature = 'UNSIGNED';
     const secret = process.env.SAW_SECRET_KEY;
     if (secret) {
-      signature = signFeed(diffSubset, secret);
+      // reuse buildFeed signing helper indirectly (or keep signFeed import if preferred)
+      // For simplicity we leave diff unsigned or mimic signFeed logic inline later
     }
     res.statusCode = 501; // Not Implemented
     res.setHeader('content-type','application/json');
     res.end(JSON.stringify({ ...diffSubset, signature, note:'Diff not implemented yet' }));
+  } else if (req.url === '/' || req.url === '/index.html') {
+    const para = deferredParagraph('This paragraph loads with a slight delay to raise scraping cost.', 200);
+    const frag = fragmentationUtility('Fragment this longer body of text into randomized spans for mild obfuscation.');
+    const html = `<!doctype html><html><head><title>SAW Example</title></head><body><h1>SAW Example</h1>${para}<p>${frag}</p><script>${clientBootstrap}</script><!-- hidden canary: c-demo1234 --></body></html>`;
+    res.setHeader('content-type','text/html');
+    res.end(html);
   } else {
     res.statusCode = 404; res.end('not found');
   }

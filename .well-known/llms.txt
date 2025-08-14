@@ -1,5 +1,5 @@
 # SAW llms.txt
 SAW-Version: 1.0
 AI-Feed-URL: https://example.com/api/saw/feed
-Public-Key: ed25519:0e0207cb
-Updated-At: 2025-08-14T18:11:46.365Z
+Public-Key: ed25519:8d57fb67
+Updated-At: 2025-08-14T18:21:06.531Z
