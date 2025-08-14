@@ -234,9 +234,6 @@ Normative MUST statements (abridged):
 - Advanced SHOULD expose a signed diff endpoint if average item count > 500 or update frequency > 1/min.
 
 Schema References:
-- Block Schema: `schemas/block.schema.json`
-- Feed Schema: `schemas/feed.schema.json`
-- llms.txt Schema (normalized form): `schemas/llms-txt.schema.json`
 
 Test Vectors:
 - Canonicalization vectors: `test-vectors/canonicalization.json`
@@ -359,7 +356,7 @@ Allow: /public
 
 ---
 ## 20. Quickstart (Narrative)
-1. Install: `npm i saw-core saw-cli`.
+1. Install: `npm i saw`.
 2. Init: `npx saw init` → creates keys, sample block.
 3. Generate: `npx saw generate` → outputs feed, llms.txt.
 4. Serve feed route via framework adapter (e.g., `createSawFeedHandler(config)`).

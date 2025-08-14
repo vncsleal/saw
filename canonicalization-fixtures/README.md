@@ -24,7 +24,7 @@ Contribution Guidelines:
 2. Avoid massive payloads; keep individual fixture canonical JSON under ~2KB.
 3. If adding manually, leave out `canonical`/`sha256` (script will fill) OR compute via:
 ```bash
-node -e "import('./packages/core/dist/index.js').then(m=>{const {hashCanonical}=m;const f=JSON.parse(process.argv[1]);console.log(hashCanonical(f));});" '{"b":2,"a":1}'
+node -e "import('./packages/cli/dist/api.js').then(m=>{const {hashCanonical}=m;const f=JSON.parse(process.argv[1]);console.log(hashCanonical(f));});" '{"b":2,"a":1}'
 ```
 4. Ensure names are unique and kebab-cased.
 

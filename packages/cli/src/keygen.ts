@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { generateKeyPair } from 'saw-core';
+import { generateKeyPair } from './api.js';
 
 function b64(u: Uint8Array) { return Buffer.from(u).toString('base64'); }
 

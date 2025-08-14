@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createServer, Server } from 'node:http';
-import { generateKeyPairFromSeed, buildFeed, generateLlmsTxt, Feed } from 'saw-core';
+import { generateKeyPairFromSeed, buildFeed, generateLlmsTxt } from '../src/api.js';
 import { verifyRemote } from '../src/verify.js';
 import { createHash } from 'node:crypto';
 
 let server: Server;
 let port: number;
+interface Feed { site: string; generated_at: string; items: Array<{ id: string }>; signature: string; [k: string]: unknown; }
 let goodFeed: Feed;
 let tamperedFeed: Feed;
 let publicKeyB64: string;
@@ -19,9 +20,9 @@ beforeAll(async () => {
   ];
   goodFeed = buildFeed({ site:'remote.test', blocks, secretKeyBase64: secretKeyB64 });
   // tampered: flip one char in signature
-  tamperedFeed = { ...goodFeed, signature: 'A'+goodFeed.signature.slice(1) } as Feed;
+  tamperedFeed = { ...goodFeed, signature: 'A'+goodFeed.signature.slice(1) };
   const fp = createHash('sha256').update(Buffer.from(publicKeyB64,'base64')).digest('hex').slice(0,8);
-  const llmsTemplate = generateLlmsTxt({ site:'remote.test', feedUrl:'http://localhost:0/api/saw/feed', publicKeyFingerprint:`ed25519:${fp}`, publicKey: publicKeyB64 });
+  const llmsTemplate = generateLlmsTxt({ feedUrl:'http://localhost:0/api/saw/feed', publicKeyFingerprint:`ed25519:${fp}`, publicKey: publicKeyB64 });
 
   server = createServer((req,res)=>{
     if (req.url === '/api/saw/feed') {

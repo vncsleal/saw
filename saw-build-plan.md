@@ -8,7 +8,7 @@ Status: Engineering Execution Document (NOT for public docs site)
 Internal guide to build the SAW reference implementation (libraries, CLI, examples) delivering the structured, signed feed + anti-scrape & verification primitives. Public-facing adoption, philosophy, and paradigm live solely in `saw-docs.md`. This file MUST NOT be published externally.
 
 In Scope:
-- Core TypeScript library (saw-core) – canonicalization, signing, canary generation, schemas.
+- Unified TypeScript package (`saw`) – canonicalization, signing, canary generation, schemas, CLI.
 - CLI (saw-cli) – init, generate, verify, diff, detect, canon.
 - Example integrations (Next.js, plain Node/Express) demonstrating feed route + llms.txt generation.
 - Anti-scrape Level 1–2 example snippets (not a framework).
@@ -58,7 +58,7 @@ Out of Scope (for initial cycles):
 ---
 ## 6. Detailed Phase Tasks
 ### Phase 0 — Preparation
-- Scaffold monorepo: packages/core, packages/cli, examples/next, examples/node, content/blocks.
+- Scaffold (historical): packages/cli (merged core), examples/next, examples/node, content/blocks.
 - Ed25519 keygen script (`saw keygen` internal usage) – DO NOT commit private key.
 - Zod + JSON Schema for Block, Feed item, llms.txt.
 - Stub canonicalizer (sort keys) + baseline test.

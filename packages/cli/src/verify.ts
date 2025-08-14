@@ -1,4 +1,6 @@
-import { FeedSchema, verifyFeedSignature, Feed } from 'saw-core';
+import { FeedSchema, verifyFeedSignature } from './api.js';
+
+interface Feed { site: string; generated_at: string; items: Array<{ id: string; [k: string]: unknown }>; signature: string; }
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 
@@ -35,22 +37,26 @@ async function fetchText(url: string): Promise<string> {
   return await res.text();
 }
 
-async function fetchJSON(url: string): Promise<unknown> {
-  const txt = await fetchText(url);
-  try { return JSON.parse(txt); } catch(e) { throw new Error('Invalid JSON at ' + url); }
-}
 
-export async function verifyRemote(base: string, publicKeyB64: string): Promise<VerifyResult> {
+export async function verifyRemote(base: string, publicKeyB64?: string): Promise<VerifyResult> {
   try {
     let siteBase = base;
     if (!/^https?:\/\//i.test(siteBase)) {
       if (siteBase.startsWith('localhost') || siteBase.includes(':')) siteBase = 'http://' + siteBase; else siteBase = 'https://' + siteBase;
     }
     const llmsUrl = siteBase.replace(/\/$/, '') + '/.well-known/llms.txt';
-    const llmsTxt = await fetchText(llmsUrl);
+  const llmsTxt = await fetchText(llmsUrl);
+  const hasLlms = !!llmsTxt.trim();
     const meta = parseLlmsTxt(llmsTxt);
     if (!meta.feedUrl) return { ok:false, code:3, message:'llms.txt missing AI-Feed-URL'};
-  const feedUnknown = await fetchJSON(meta.feedUrl);
+  // Fetch feed directly to capture headers for auto public key discovery
+  const feedRes = await fetch(meta.feedUrl, { headers:{ 'user-agent':'saw-cli/verify' } });
+  if (!feedRes.ok) return { ok:false, code:3, message:'HTTP '+feedRes.status+' for feed'};
+  const headerPk = feedRes.headers.get('x-saw-public-key') || feedRes.headers.get('X-SAW-Public-Key');
+  if (!publicKeyB64) publicKeyB64 = headerPk || process.env.SAW_PUBLIC_KEY;
+  if (!publicKeyB64) return { ok:false, code:3, message:'Public key not provided and not exposed via x-saw-public-key header'};
+  let feedUnknown: unknown;
+  try { feedUnknown = await feedRes.json(); } catch { return { ok:false, code:3, message:'Invalid JSON at feed URL'}; }
   let feed: Feed;
   try { feed = FeedSchema.parse(feedUnknown); } catch (e: unknown) { return { ok:false, code:3, message:'Schema invalid: '+ (e instanceof Error ? e.message : String(e)) }; }
   const subset = { site: feed.site, generated_at: feed.generated_at, items: feed.items };
@@ -60,7 +66,17 @@ export async function verifyRemote(base: string, publicKeyB64: string): Promise<
       const fp = fingerprintPublicKey(publicKeyB64);
       if (fp !== meta.fingerprint) return { ok:false, code:2, message:`Fingerprint mismatch (expected ${meta.fingerprint} got ${fp})` };
     }
-    return { ok:true, code:0, message:'Signature OK'};
+    // Optional: check detect endpoint presence (non-fatal)
+  let detectOk = false;
+    try {
+      const detectRes = await fetch(siteBase.replace(/\/$/, '') + '/api/saw/detect', { method:'POST', headers:{ 'content-type':'application/json', 'user-agent':'saw-cli/verify' }, body: JSON.stringify({ text: 'probe text' }) });
+      if (detectRes.ok) detectOk = true;
+  } catch { /* detect endpoint optional */ }
+  const parts = [ 'Signature OK' ];
+  if (!hasLlms) parts.push('llms.txt missing');
+  if (!headerPk) parts.push('no header key');
+  if (!detectOk) parts.push('detect endpoint missing');
+  return { ok:true, code:0, message: parts.join(' | ') };
   } catch (e: unknown) {
     return { ok:false, code:3, message: e instanceof Error ? e.message : String(e) };
   }

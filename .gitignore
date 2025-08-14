@@ -3,3 +3,7 @@ dist
 .DS_Store
 **/tsconfig.tsbuildinfo
 tmp_*.txt
+.saw-apikeys.json
+**/.saw-apikeys.json
+feed.json
+harness-results.json

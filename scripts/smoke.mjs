@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Simple smoke test: generate keypair, build feed, verify feed.
-import { generateKeyPair, buildFeed, verifyFeedSignature } from '../packages/core/dist/index.js';
+import { generateKeyPair, buildFeed, verifyFeedSignature } from '../packages/cli/dist/api.js';
 import fs from 'node:fs';
 
 function b64(buf){ return Buffer.from(buf).toString('base64'); }

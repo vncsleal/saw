@@ -1,8 +1,0 @@
-{
-  "id": "block:hello",
-  "type": "doc",
-  "title": "Hello",
-  "version": "v1",
-  "updated_at": "2025-08-14T00:00:00Z",
-  "content": "Hello"
-}

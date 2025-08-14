@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { hashCanonical } from '../packages/core/dist/canonicalize.js';
+import { hashCanonical } from '../packages/cli/dist/core/canonicalize.js';
 
 const fixturesPath = path.join(process.cwd(),'canonicalization-fixtures','fixtures.json');
 const fixtures = JSON.parse(fs.readFileSync(fixturesPath,'utf8'));

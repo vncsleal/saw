@@ -29,7 +29,8 @@ if (fs.existsSync(summaryPath)) {
     branches: { pct: totalBranchesFound? (totalBranchesHit/totalBranchesFound*100):100 }
   }};
 }
-const coreKeys = Object.keys(summary).filter(k=>k.includes('packages/core/src'));
+// Adjusted for single-package layout (cli only)
+const coreKeys = Object.keys(summary).filter(k=>k.includes('packages/cli/src'));
 let total = { lines:{ pct:0 }, statements:{ pct:0 }, functions:{ pct:0 }, branches:{ pct:0 } };
 // Use total from summary if present
 if (summary.total) total = summary.total; else if (coreKeys.length) {

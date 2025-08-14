@@ -1,47 +1,50 @@
-# SAW Tooling Monorepo
+# SAW (Structured Access Web)
 
-[![npm version (saw-core)](https://img.shields.io/npm/v/saw-core)](https://www.npmjs.com/package/saw-core)
-[![npm version (saw-cli)](https://img.shields.io/npm/v/saw-cli)](https://www.npmjs.com/package/saw-cli)
+[![npm version (saw)](https://img.shields.io/npm/v/saw)](https://www.npmjs.com/package/saw)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Reference implementation (early draft) for SAW (Structured Access Web): canonicalization, signed feed generation, static + per-key salted canaries, attribution (API keys + HMAC), signed diff subsets, verification CLI, and examples.
+Single-package implementation for canonical JSON, signed structured feed generation, llms.txt emission, verification (local & remote with auto key discovery), basic diff & detection helpers, canary detection, and server route utilities.
 
 ## Contents
-- `packages/core` – Core library (canonicalize, sign/verify, feed builder, canary generator, agent descriptor, event emitter).
-- `packages/cli` – CLI (`canon`, `hash`, `keygen`, `keygen-api`, `list-api`, `init`, `generate`, `verify`, `diff`).
-- `test-vectors/` – Canonicalization & signature vectors.
-- `examples/node` – Feed & diff scaffold + anti-scrape snippets.
-- `schemas/` – JSON Schemas (block, feed, llms.txt normalized).
-- `scripts/` – Determinism & legacy canonicalization script.
+- `packages/cli` – Library + CLI distribution (published as `saw`).
+- `canonicalization-fixtures/`, `test-vectors/` – Determinism / hash vectors.
+- `scripts/` – Determinism, benchmarking, harness.
+- `examples/` – Integration examples.
 
 ## Installation
-
-Core library (runtime dependency):
 ```bash
-npm install saw-core
+npm install saw
+# or
+pnpm add saw
 ```
 
-CLI (dev / tooling dependency):
-```bash
-npm install --save-dev saw-cli
-```
-
-Or run on demand with npx (no install):
+Ad-hoc:
 ```bash
 npx saw keygen
 ```
 
 ## Quick Start
 
-Generate a keypair and build a minimal feed:
+Generate keys, build feed, verify:
 ```bash
-node -e "import('saw-core').then(m=>{const kp=m.generateKeyPair();console.log('PUBLIC',Buffer.from(kp.publicKey).toString('base64'));console.log('SECRET',Buffer.from(kp.secretKey).toString('base64'));})"
+# Generate Ed25519 keypair
+npx saw keygen > keys.txt
+export SAW_PUBLIC_KEY=$(grep PUBLIC_KEY keys.txt | cut -d= -f2)
+export SAW_SECRET_KEY=$(grep SECRET_KEY keys.txt | cut -d= -f2)
 
-# Suppose you saved PUBLIC & SECRET to env vars
-SAW_PUBLIC_KEY=... SAW_SECRET_KEY=... node packages/cli/dist/index.js generate example.com > feed.json
+# Build feed (creates feed.json and optionally llms.txt if SAW_PUBLIC_KEY set)
+npx saw feed
 
-# Verify the feed
-node packages/cli/dist/index.js verify feed.json $SAW_PUBLIC_KEY --json
+# Verify locally
+npx saw verify feed.json $SAW_PUBLIC_KEY
+
+# Verify remote (auto key discovery via x-saw-public-key if exposed)
+npx saw verify example.com
+```
+
+All-in-one project bootstrap:
+```bash
+npx saw init
 ```
 
 ## Security & Key Handling
@@ -69,37 +72,43 @@ Threat considerations:
 
 Planned hardening (future): optional key vault interface, in‑memory secret zeroization, multi‑signature rotation window, structured security advisories.
 
-## Usage (CLI Commands)
-
-Run unit tests:
+## CLI Commands (concise)
 ```bash
-npm test
+keygen                 # Generate Ed25519 keypair
+feed                   # Build & sign feed (feed.json) + optional llms.txt
+llms                   # Generate llms.txt only (auto infer site/url)
+verify <file|site>     # Verify local file or remote site feed
+antiscrape <text|file> # Detect canary tokens (local or --remote base)
+init                   # One-shot: keys + sample block + feed + llms.txt
 
-## Core Commands
-### Core Commands
-```bash
-# Canonicalize inline JSON
-node packages/cli/dist/index.js canon '{"b":2,"a":1}'
-
-# Generate feed (requires keys; add SAW_CANARY_SECRET to embed static canaries & emit canary events)
-SAW_PUBLIC_KEY=... SAW_SECRET_KEY=... SAW_CANARY_SECRET=secret \
-   node packages/cli/dist/index.js generate example.com --events
-
-# Verify local feed (prints structured events with --json)
-node packages/cli/dist/index.js verify feed.json $SAW_PUBLIC_KEY --json
-
-# Verify remote site (expects .well-known/llms.txt)
-node packages/cli/dist/index.js verify example.com $SAW_PUBLIC_KEY
-
-# Generate HMAC API key (Phase 3 attribution)
-node packages/cli/dist/index.js keygen-api
-
-# List locally stored API key IDs
-node packages/cli/dist/index.js list-api
-
-# Fetch & verify a signed diff subset (requires since timestamp)
-node packages/cli/dist/index.js diff example.com $SAW_PUBLIC_KEY --since 2025-01-01T00:00:00.000Z
+# Extended groups:
+key gen|gen-api|list-api
+feed build|verify
+llms init
+diff verify --since <ISO>
+detect <text|file> [--remote]
 ```
+
+Examples:
+```bash
+npx saw key gen --dotenv           # Write keys into .env
+npx saw feed build --site example.com --out feed.json
+npx saw llms init --url https://example.com/api/saw/feed --public-key $SAW_PUBLIC_KEY
+npx saw verify feed.json $SAW_PUBLIC_KEY --json
+npx saw verify example.com         # Remote (auto key header)
+npx saw antiscrape 'text with ABC-123456 token'
+```
+
+Environment variables:
+```
+SAW_PUBLIC_KEY  (base64)
+SAW_SECRET_KEY  (base64, required to build feed)
+SAW_SITE        (default host when inferring feed URL)
+SAW_FEED_URL    (override llms feed URL)
+SAW_CANARY_SECRET (optional static canaries)
+```
+
+Verification auto-discovers the public key via `x-saw-public-key` header if not provided.
 
 ## Determinism & Vectors
 `npm run determinism` executes multi-run canonicalization stability check; golden signature vector locks signing behavior.
@@ -115,10 +124,38 @@ Expected output: all vectors pass.
 3. Replace placeholder hash & (if needed) canonical string.
 4. Re-run tests and confirm PASS.
 
-## Events
-When you add --events to generate, the CLI streams JSON lines such as:
-{"event":"feed.request","site":"example.com","block_count":1}
-{"event":"feed.response","site":"example.com","items":1,"signature_present":true}
+## Server Helpers
+Import lightweight route creators for Node or edge runtimes:
+```ts
+import { createFeedHandler, createDetectHandler } from 'saw';
+import http from 'node:http';
+
+const handler = createFeedHandler({
+   site: 'example.com',
+   secretKeyBase64: process.env.SAW_SECRET_KEY!,
+   publicKeyBase64: process.env.SAW_PUBLIC_KEY,
+   exposePublicKeyHeader: true,
+   getBlocks: async () => [ { id:'block:home', title:'Home', content:'Hello', version:'v1' } ]
+});
+
+http.createServer((req,res)=>{
+   if (req.url === '/api/saw/feed') return handler(req,res);
+   if (req.url === '/api/saw/detect') return createDetectHandler()(req,res);
+   res.statusCode = 404; res.end('not found');
+}).listen(3000);
+```
+
+Edge / Fetch style:
+```ts
+import { createFeedFetchHandler, createDetectFetchHandler } from 'saw';
+export const GET = createFeedFetchHandler({ site:'example.com', secretKeyBase64: process.env.SAW_SECRET_KEY!, getBlocks: ()=>[{id:'b1'}] });
+export const POST = createDetectFetchHandler();
+```
+
+Expose `/.well-known/llms.txt` (example build):
+```bash
+npx saw llms > public/.well-known/llms.txt
+```
 
 Event schema (fields may expand):
 - feed.request: { ts, event, site, block_count }
@@ -126,7 +163,7 @@ Event schema (fields may expand):
 - feed.response: { ts, event, site, items, signature_present }
 
 ## Canary Fields
-If `SAW_CANARY_SECRET` is set, each feed item gains `canary` and `structured.meta.canary` fields. Omit the secret to exclude them (useful for diffing behavior or public vs private feeds). When per-key salted canaries are desired (attribution), supply `perKeySalt` when calling `buildFeed` (the example server derives this from the API key record salt) so each consumer sees a distinct deterministic value.
+If `SAW_CANARY_SECRET` is set, each feed item may include derived canary data (future expansion). Keep the secret private.
 
 ## Attribution & HMAC Request Signing (Phase 3)
 The example server issues API keys with:
@@ -173,8 +210,28 @@ Config environment vars:
 
 Tokens expire (default 5–10 min) and are not retained long-term. Classification values: none | single | multiple.
 
-## Verification Ops Harness
-The repository includes an internal verification harness script (`scripts/run-verification-harness.mjs`) that consolidates key Phase 4 readiness checks.
+## Verification Harness (internal)
+## Anti-Scrape Utilities
+Runtime helpers to embed canary tokens in HTML to catch naive scrapers:
+```ts
+import { buildAntiScrapeHTML } from 'saw';
+const { html, token } = buildAntiScrapeHTML('<html><body><h1>Hello</h1></body></html>', { honeyLink:true, randomZeroWidth:true });
+console.log(token, html.length);
+```
+
+Node handler:
+```ts
+import { createAntiScrapePageHandler } from 'saw';
+import http from 'node:http';
+const page = createAntiScrapePageHandler(()=>'<html><body>Welcome</body></html>', { honeyLink:true });
+http.createServer((req,res)=>{
+   if (req.url === '/') return page(req,res);
+   res.statusCode = 404; res.end('not found');
+}).listen(3000);
+```
+
+Detection: the existing `antiscrape` / `detect` command or `extractCanariesFromHtml` function can be used on scraped text to surface leaks.
+Script `scripts/run-verification-harness.mjs` exercises canonicalization, signing, diff, detection. Intended for maintainers.
 
 Current sections:
 1. Canonicalization determinism across the fixture corpus (verifies stored `canonical` + `sha256`).
@@ -235,24 +292,22 @@ Prefer `confidence_band` for coarse alerting; use raw `confidence` for tuning an
 Planned: emit a JSON summary file (e.g., `harness-results.json`) for CI ingestion.
 
 ## Future Enhancements
-- Ephemeral session canaries + detector (Phase 4)
-- Extension registry & search stub (Phase 5)
-- Additional language SDKs
-- Performance benchmarks & 200+ canonicalization fixture corpus
+- Rich diff endpoint helpers
+- Optional HMAC request signing helper
+- Multi-sig / key rotation windows
+- Extended detector heuristics
 
 ## Benchmarks
 ## Coverage Enforcement
-Run with threshold (initial 70%):
 ```bash
 npm run coverage:enforce
 ```
-Increase threshold to 90% after expanding fixtures (edit `scripts/enforce-coverage.mjs`).
 
 ## Webhook Receiver (Demo)
 Start a local receiver to observe detection/feed events:
 ```bash
 node scripts/webhook-receiver.mjs &
-SAW_DETECT_WEBHOOK=http://localhost:4001 node examples/node/server.js
+SAW_DETECT_WEBHOOK=http://localhost:4001 node your-server.js
 ```
 Then issue feed or detect calls; events print with `# webhook event` prefix.
 Run feed build micro-benchmark (rough, local):

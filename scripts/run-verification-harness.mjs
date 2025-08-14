@@ -5,33 +5,14 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { hashCanonical, buildAgentDescriptor, buildFeed, generateKeyPair, verifyFeedSignature, detectCanaries, EphemeralCanaryStore, verifySignedDiff, WebhookCanaryDetectedSchema, WebhookDetectRequestSchema, WebhookFeedResponseSchema, WebhookPageResponseSchema, WebhookDiffResponseSchema, WebhookIngestUpsertSchema } from '../packages/core/dist/index.js';
-import { spawn } from 'node:child_process';
+import { hashCanonical, buildAgentDescriptor, buildFeed, generateKeyPair, verifyFeedSignature, detectCanaries, EphemeralCanaryStore, verifySignedDiff, WebhookCanaryDetectedSchema, WebhookDetectRequestSchema, WebhookFeedResponseSchema, WebhookPageResponseSchema, WebhookDiffResponseSchema, WebhookIngestUpsertSchema } from '../packages/cli/dist/api.js';
+// examples folder removed: harness no longer auto-spawns example server
 
 function section(title){ console.log(`\n=== ${title} ===`); }
 
-// Optionally start example server for integrated validation (with generated signing key)
-let serverProc = null;
-let serverStarted = false;
-let serverPublicKeyBase64 = '';
-async function startServerIfNeeded(){
-  if (!process.env.HARNESS_START_SERVER) return;
-  // Generate a deterministic keypair for this run to allow remote diff signature verification
-  const serverKp = generateKeyPair();
-  serverPublicKeyBase64 = Buffer.from(serverKp.publicKey).toString('base64');
-  const serverSecretKeyBase64 = Buffer.from(serverKp.secretKey).toString('base64');
-  return new Promise(resolve => {
-    serverProc = spawn('node',['examples/node/server.js'],{ stdio:['ignore','pipe','pipe'], env:{ ...process.env, SAW_SECRET_KEY: serverSecretKeyBase64 } });
-    serverProc.stdout.on('data', d=>{
-      const s = d.toString();
-      if (!serverStarted && s.includes('Example feed on')) { serverStarted = true; resolve(true); }
-      process.stdout.write(s.replace(/\n$/,''));
-    });
-    serverProc.stderr.on('data', d=>process.stderr.write(d.toString()));
-    setTimeout(()=>{ if (!serverStarted) resolve(false); }, 4000); // 4s timeout
-  });
-}
-await startServerIfNeeded();
+// Deprecated: example server spawning removed; harness runs only local logic now.
+const serverStarted = false;
+const serverPublicKeyBase64 = '';
 
 // 1. Canonicalization determinism over fixtures
 section('Canonicalization Determinism');

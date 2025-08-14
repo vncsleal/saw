@@ -1,2 +1,0 @@
-# Exclude compiled test artifacts from published package
-/dist/**/*.test.*

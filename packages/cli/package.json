@@ -1,11 +1,8 @@
 {
-  "name": "saw-cli",
-  "version": "0.1.2",
-  "description": "SAW CLI: canonicalize, generate & verify signed feeds, diffs, canary detection.",
-  "bin": {
-    "saw": "dist/index.js",
-    "saw-cli": "dist/index.js"
-  },
+  "name": "saw",
+  "version": "0.2.0",
+  "description": "SAW: core library & CLI for signed structured content feeds, diffs, and canary detection.",
+  "bin": { "saw": "dist/index.js" },
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -16,17 +13,17 @@
     "url": "https://github.com/vncsleal/saw/issues"
   },
   "homepage": "https://github.com/vncsleal/saw#readme",
-  "keywords": [
-    "saw",
-    "cli",
-    "canonicalization",
-    "ed25519",
-    "feed",
-    "diff",
-    "verification"
-  ],
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "keywords": ["saw","canonical","ed25519","feed","diff","verification","llms.txt","canary","antiscrape"],
+  "main": "dist/api.js",
+  "types": "dist/api.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/api.d.ts",
+      "import": "./dist/api.js",
+      "require": "./dist/api.js"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "dist",
     "README.md",
@@ -34,10 +31,12 @@
     "package.json"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+  "build": "tsc -p tsconfig.json",
+  "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "saw-core": "^0.1.2"
+    "tweetnacl": "^1.0.3",
+    "zod": "^3.23.0"
   },
   "engines": { "node": ">=18" },
   "publishConfig": {

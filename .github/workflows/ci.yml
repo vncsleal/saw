@@ -52,30 +52,35 @@ jobs:
 
       - name: Smoke Script
         run: npm run smoke
+      - name: Pack (dry-run) saw
+        run: npm pack --dry-run packages/cli
 
-      - name: Publish Dry-Run (core)
-        run: npm publish --dry-run --workspace packages/core
-
-      - name: Publish Dry-Run (cli)
+      - name: Publish Dry-Run (saw)
         run: npm publish --dry-run --workspace packages/cli
 
-  # Future real publish job (manual / tagged) sketch:
-  # publish:
-  #   if: startsWith(github.ref, 'refs/tags/v')
-  #   needs: build-test-harness
-  #   permissions:
-  #     contents: read
-  #     id-token: write
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: actions/setup-node@v4
-  #       with:
-  #         node-version: 20.x
-  #         registry-url: 'https://registry.npmjs.org'
-  #       env:
-  #         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-  #     - run: npm ci
-  #     - run: npm run build
-  #     - run: npm publish --workspace packages/core
-  #     - run: npm publish --workspace packages/cli
+  publish:
+    name: Publish (tagged release)
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-test-harness
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+      - name: Install
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Publish saw
+        run: npm publish --workspace packages/cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+

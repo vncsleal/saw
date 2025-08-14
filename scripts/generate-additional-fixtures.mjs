@@ -5,7 +5,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { hashCanonical } from '../packages/core/dist/index.js';
+import { hashCanonical } from '../packages/cli/dist/api.js';
 
 const TARGET = parseInt(process.env.FIXTURE_TARGET || '200', 10);
 const fixturesPath = path.join(process.cwd(),'canonicalization-fixtures','fixtures.json');

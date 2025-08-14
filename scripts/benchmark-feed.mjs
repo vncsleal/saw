@@ -1,4 +1,4 @@
-import { buildFeed, generateKeyPair } from '../packages/core/dist/index.js';
+import { buildFeed, generateKeyPair } from '../packages/cli/dist/api.js';
 import fs from 'node:fs';
 
 function makeBlocks(n) {
