@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { MemoryBlockStore } from './store.js';
 import { computeDiff } from './diff.js';
 
-function makeBlock(id: string, version: string, updated_at: string) {
-  return { id, type: 'doc', title: id, content: 'x', version, updated_at } as any;
+interface TestBlock { id:string; type:'doc'; title:string; content:string; version:string; updated_at:string }
+function makeBlock(id: string, version: string, updated_at: string): TestBlock {
+  return { id, type: 'doc', title: id, content: 'x', version, updated_at };
 }
 
 describe('MemoryBlockStore history & diff', () => {

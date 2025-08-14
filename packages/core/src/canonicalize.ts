@@ -7,7 +7,8 @@ export function canonicalize(value: unknown): string {
   return canon(value);
 }
 
-function canon(v: any): string {
+// Internal recursive canonicalization with explicit unknown input
+function canon(v: unknown): string {
   if (v === null) return 'null';
   const t = typeof v;
   if (t === 'number') {
@@ -26,11 +27,12 @@ function canon(v: any): string {
   }
   if (t === 'string') return JSON.stringify(v);
   if (t === 'boolean') return v ? 'true' : 'false';
-  if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']';
+  if (Array.isArray(v)) return '[' + (v as unknown[]).map(canon).join(',') + ']';
   if (t === 'object') {
-    const keys = Object.keys(v).sort();
+    const obj = v as Record<string, unknown>;
+    const keys = Object.keys(obj).sort();
     const parts: string[] = [];
-    for (const k of keys) parts.push(JSON.stringify(k) + ':' + canon(v[k]));
+    for (const k of keys) parts.push(JSON.stringify(k) + ':' + canon(obj[k]));
     return '{' + parts.join(',') + '}';
   }
   throw new Error('Unsupported type: ' + t);
