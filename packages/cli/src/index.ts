@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { canonicalize, hashCanonical, generateKeyPair, buildFeed, generateLlmsTxt, generateApiKey, verifySignedDiff, detectCanaries } from '@saw/core';
-import { SimpleEventEmitter } from '@saw/core';
+import { canonicalize, hashCanonical, generateKeyPair, buildFeed, generateLlmsTxt, generateApiKey, verifySignedDiff, detectCanaries } from 'saw-core';
+import { SimpleEventEmitter } from 'saw-core';
 import { verifyRemote, verifyLocal } from './verify.js';
 import fs from 'node:fs';
 import path from 'node:path';

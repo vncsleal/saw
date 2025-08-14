@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createServer, Server } from 'node:http';
-import { generateKeyPairFromSeed, buildFeed, generateLlmsTxt, Feed } from '@saw/core';
+import { generateKeyPairFromSeed, buildFeed, generateLlmsTxt, Feed } from 'saw-core';
 import { verifyRemote } from './verify.js';
 import { createHash } from 'node:crypto';
 

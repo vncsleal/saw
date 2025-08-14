@@ -1,4 +1,4 @@
-import { FeedSchema, verifyFeedSignature, Feed } from '@saw/core';
+import { FeedSchema, verifyFeedSignature, Feed } from 'saw-core';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 
