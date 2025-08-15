@@ -14,5 +14,6 @@ export function verifyFeedSignature(feedSubset: unknown, signatureB64: string, p
 	const pubKey = Buffer.from(publicKeyB64,'base64');
 	const canonical = canonicalize(feedSubset);
 	const sig = Buffer.from(signatureB64,'base64');
+	if (sig.length !== 64) return false; // defensive length check
 	return nacl.sign.detached.verify(Buffer.from(canonical), sig, pubKey);
 }
