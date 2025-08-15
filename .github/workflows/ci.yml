@@ -47,10 +47,10 @@ jobs:
         run: |
           npm run coverage || echo "coverage step failed (non-blocking)"
       - name: Pack (dry-run) saw
-        run: npm pack --dry-run packages/cli
+        run: npm pack --dry-run ./packages/cli
 
       - name: Publish Dry-Run (saw)
-        run: npm publish --dry-run --workspace packages/cli
+        run: npm publish --dry-run --workspace @vncsleal/saw
 
   publish:
     name: Publish (tagged release)
