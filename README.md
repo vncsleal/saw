@@ -8,7 +8,7 @@ Single-package implementation for canonical JSON, signed structured feed generat
 ## Contents
 - `packages/cli` – Library + CLI distribution (published as `@vncsleal/saw`).
 - `canonicalization-fixtures/`, `test-vectors/` – Determinism / hash vectors.
-- `scripts/` – Determinism, benchmarking, harness.
+- `scripts/` – Basic benchmarking & smoke scripts.
 - `examples/` – Integration examples.
 
 ## Installation
@@ -210,7 +210,6 @@ Config environment vars:
 
 Tokens expire (default 5–10 min) and are not retained long-term. Classification values: none | single | multiple.
 
-## Verification Harness (internal)
 ## Anti-Scrape Utilities
 Runtime helpers to embed canary tokens in HTML to catch naive scrapers:
 ```ts
@@ -231,65 +230,8 @@ http.createServer((req,res)=>{
 ```
 
 Detection: the existing `antiscrape` / `detect` command or `extractCanariesFromHtml` function can be used on scraped text to surface leaks.
-Script `scripts/run-verification-harness.mjs` exercises canonicalization, signing, diff, detection. Intended for maintainers.
-
-Current sections:
-1. Canonicalization determinism across the fixture corpus (verifies stored `canonical` + `sha256`).
-2. Feed signing & signature verification (fresh keypair each run).
-3. Agent descriptor fingerprint generation.
-4. Detector sample (issues ephemeral canary, validates detection, confidence & band).
-5. Detector corpus accuracy (`detector-samples/ground-truth.json`).
-6. Diff subset verification (remote if server auto-started, else simulated). Verifies signature when harness started server with generated key.
-7. Webhook payload schema validation (parses recent `/api/saw/logs` entries with Zod schemas for feed.response, page.response, detect.request, canary.detected).
-8. Machine-readable JSON summary (`harness-results.json`).
-
-Run locally:
-```bash
-npm run harness
-```
-Exit code is non‑zero if any section fails or fixture count < target (default 200).
-
-Environment vars:
-```
-FIXTURE_TARGET=250        # require larger canonicalization corpus size
-HARNESS_START_SERVER=1    # auto-start example server (enables real diff + webhook validation)
-HARNESS_DIFF_BASE=...     # override base URL for diff endpoint
-HARNESS_LOG_BASE=...      # override logs endpoint (default http://localhost:3000/api/saw/logs)
-HARNESS_OUTPUT=results.json  # change JSON summary filename
-HARNESS_REQUIRE_WEBHOOKS=1   # (future) fail run if webhook validation skipped
-HARNESS_PUBLIC_KEY_B64=...   # external diff: supply remote public key if llms.txt lacks Public-Key-Base64
-```
-
-Summary file shape (example excerpt):
-```
-{
-   "fixtureCount": 200,
-   "canonicalMismatches": 0,
-   "detector": { "classification":"single","confidence":0.7,"confidence_band":"medium","tokens":1,"occurrences":2 },
-   "diff": { "mode":"remote","verified": true },
-   "failures": []
-}
-```
-
-### Extending the Harness
-Add new sections inside the script and append failure labels to the `failures` array before summary write. Keep each section idempotent & side‑effect free where possible.
-
-### Detector Corpus Workflow
-The `detector-samples/` directory contains sample `.txt` files plus `ground-truth.json` defining expected `unique` count and `classification` for each sample. To add new samples:
-1. Create `sample-<n>-<label>.txt` with representative content.
-2. Append an entry to `ground-truth.json` with `{ "file": "sample-<n>-<label>.txt", "unique": <int>, "classification": "none|single|multiple" }`.
-3. Run the harness; ensure `Detector failures=0`.
-4. Include near‑miss tokens (e.g., `c-abc123` too short) in future with a separate label—these should not increment the `unique` count.
-
-### Confidence & Rationale
-Detector result fields:
-- `confidence` (0–1 numeric)
-- `confidence_band` (none|low|medium|high) thresholds: >=0.85 high, >=0.6 medium, >0 low
-- `rationale` (human readable summary)
-Prefer `confidence_band` for coarse alerting; use raw `confidence` for tuning and future scoring models.
-
-### Machine-Readable Output (Future)
-Planned: emit a JSON summary file (e.g., `harness-results.json`) for CI ingestion.
+## (Removed) Verification Harness
+The previous multi-phase verification harness (canonicalization corpus, diff/detect, webhook validation) was removed to streamline the project. Remaining validation lives in unit tests and the simple smoke/benchmark scripts. Historical docs retained in git history if reference needed.
 
 ## Future Enhancements
 - Rich diff endpoint helpers
