@@ -1,102 +1,102 @@
 # saw
 
-Unified library + CLI for SAW (Structured Access Web): build & sign feeds, verify feeds & diffs, canonicalize JSON, manage keys, detect canaries, and provide anti‑scrape helpers.
+Minimal library + CLI for SAW (Structured Access Web).
 
-> Early draft reference implementation. Interfaces may change pre-1.0.
+Features:
+* Generate Ed25519 keypairs
+* Build & sign structured content feeds (canonical JSON)
+* Verify feed signatures (file or object)
+* Emit `llms.txt` with `Public-Key-Base64` & feed reference
+* Inject lightweight anti‑scrape canary token into HTML
+* Create a tiny feed route handler (Node / Fetch)
+
+Intentionally removed for simplicity: diff APIs, detection server, seeded keygen, large harness scripts.
+
+> Pre‑1.0: small surface by design; minor changes may occur.
 
 ## Install
-
-Project dependency (includes programmatic APIs + CLI):
 ```bash
 npm install saw
-```
-Ad hoc usage (no install):
-```bash
+# or ad‑hoc
 npx saw key gen --env
 ```
-
 Requires Node >=18.
 
-## Commands (summary)
-New hierarchical style (preferred):
+## CLI Commands
 ```
-saw feed build [--site <site>] [--out feed.json] [--events]
-saw feed verify <feed.json|site> [publicKeyBase64] [--json]
-saw llms init --url <feedUrl> --public-key <base64> [--fingerprint-len N] [--out public/.well-known/llms.txt]
-saw key gen [--env] [--json] [--dotenv] [--env-file <path>] [--force]
-saw key gen-api
-saw key list-api
-saw diff verify <site> <publicKeyBase64> --since <ISO> [--json]
-saw detect <text|file> [--remote <base>]
+saw key gen              # Generate Ed25519 keypair
+saw feed build           # Build & sign feed (feed.json)
+saw verify <feed.json> [publicKeyBase64]
+saw llms init --url <feedUrl> --public-key <base64> [--out <path>] [--fingerprint-len N]
+saw antiscrape <file|->  # Wrap HTML with token + honeypot (stdout)
+saw init                 # Scaffold keys + sample feed + llms.txt
 ```
+Aliases (`keygen`, `feed`, `generate`, `llms`, `verify`) remain.
 
-Legacy aliases (still work): `generate`, `verify`, `diff`, `keygen`, `keygen-api`, `list-api`.
-
-## Examples
-Generate & verify a feed locally:
+## Quick Start
 ```bash
-# 1. Keypair (choose one)
-# a) Shell exports
-eval "$(npx saw key gen --env)"
-# b) Write to .env (will not overwrite existing keys unless --force)
-npx saw key gen --dotenv
-# c) JSON (for scripting)
-npx saw key gen --json > keypair.json
+# 1. Keys
+eval "$(npx saw key gen --env)"   # exports SAW_PUBLIC_KEY / SAW_SECRET_KEY
 
-# 2. Generate feed (new style)
+# 2. Build feed
 SAW_SITE=example.com npx saw feed build --out feed.json
 
-# 3. Verify feed (local file requires key arg or SAW_PUBLIC_KEY env)
+# 3. Verify
 npx saw verify feed.json $SAW_PUBLIC_KEY --json
 
-# Remote site (public key auto-discovered via header or llms.txt fingerprint)
-npx saw verify example.com
-```
+# 4. llms.txt
+npx saw llms init --url https://example.com/api/saw/feed --public-key $SAW_PUBLIC_KEY --out public/.well-known/llms.txt
 
-Diff subset verification:
-```bash
-npx saw diff verify example.com $SAW_PUBLIC_KEY --since 2025-01-01T00:00:00.000Z
-```
-
-Per-key salted canaries (server-driven) + static canaries:
-```bash
-SAW_PUBLIC_KEY=... SAW_SECRET_KEY=... SAW_CANARY_SECRET=static npx saw generate example.com --events
-```
-
-Ephemeral detection (Phase 4 experimental):
-```bash
-npx saw detect page.html
-npx saw detect page.html --remote example.com
+# 5. Anti‑scrape HTML
+npx saw antiscrape index.html > index.instrumented.html
 ```
 
 ## Environment Variables
-Required for feed build:
-- `SAW_PUBLIC_KEY` base64 public key (32 raw bytes -> 44 b64 chars)
-- `SAW_SECRET_KEY` base64 secret key (64 raw bytes -> 88 b64 chars)
+Required to build a feed:
+* `SAW_PUBLIC_KEY` (base64, 32 raw bytes -> 44 chars)
+* `SAW_SECRET_KEY` (base64, 64 raw bytes -> 88 chars)
 
 Optional:
-- `SAW_SITE` default site/domain (used when not passing --site)
-- `SAW_FEED_URL` override feed URL when auto-writing llms.txt
-- `SAW_CANARY_SECRET` static canary derivation secret
-- `SAW_EPHEMERAL_TTL_MS` override ephemeral token TTL (server side)
-- `SAW_DETECT_WEBHOOK` webhook URL for detection & feed events (server side)
-
-## Security Notes
-Treat `SAW_SECRET_KEY` and canary secrets as production credentials. Rotate by publishing the new `Public-Key-Base64` while still accepting the old key for a grace window, then retire it. Never commit secrets.
+* `SAW_SITE` default site/domain
+* `SAW_FEED_URL` override feed URL in llms.txt
+* `SAW_CANARY_SECRET` static canary derivation secret
 
 ## Exit Codes
-- 0 success / verified
-- 1 generic failure (invalid signature, malformed input)
-- >1 reserved for future granular codes (e.g., network, schema mismatch)
+* 0 success / verified
+* 1 failure (invalid input, signature, or IO)
+
+## Programmatic API
+```ts
+import {
+	generateKeyPair,
+	buildFeed,
+	signFeed,
+	verifyFeedSignature,
+	generateLlmsTxt,
+	buildAntiScrapeHTML,
+	createFeedRoute
+} from 'saw';
+
+const { publicKeyBase64, secretKeyBase64 } = generateKeyPair();
+const feed = buildFeed({
+	site: 'example.com',
+	blocks: [ { id:'block:home', type:'doc', title:'Home', version:'v1', updated_at:new Date().toISOString(), block_hash:'abc123' } ]
+}, secretKeyBase64);
+
+const ok = verifyFeedSignature(feed, feed.signature!, publicKeyBase64);
+const llms = generateLlmsTxt({ site:'example.com', feedPath:'/api/saw/feed', publicKeyBase64 });
+const { html, token } = buildAntiScrapeHTML('<html><body>Hello</body></html>');
+const handler = createFeedRoute(async ()=> feed, { exposePublicKeyHeader:true, publicKeyBase64 });
+```
 
 ## Development
-From repo root:
 ```bash
-npm run build && node packages/cli/dist/index.js --help
+npm run build
+node packages/cli/dist/index.js --help
 ```
 
 ## License
 MIT
 
 ---
-Consolidation notice: former separate core & CLI packages are now unified; import all APIs from `saw`.
+Minimal core & CLI live in one package; import APIs from `saw`.

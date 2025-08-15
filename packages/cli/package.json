@@ -1,7 +1,7 @@
 {
   "name": "saw",
-  "version": "0.2.0",
-  "description": "SAW: core library & CLI for signed structured content feeds, diffs, and canary detection.",
+  "version": "0.2.1",
+  "description": "SAW: minimal library + CLI for signed canonical JSON feeds, llms.txt, verification, and anti-scrape HTML.",
   "bin": { "saw": "dist/index.js" },
   "type": "module",
   "license": "MIT",
@@ -13,7 +13,7 @@
     "url": "https://github.com/vncsleal/saw/issues"
   },
   "homepage": "https://github.com/vncsleal/saw#readme",
-  "keywords": ["saw","canonical","ed25519","feed","diff","verification","llms.txt","canary","antiscrape"],
+  "keywords": ["saw","canonical","ed25519","feed","verification","llms.txt","antiscrape","signature"],
   "main": "dist/api.js",
   "types": "dist/api.d.ts",
   "exports": {
