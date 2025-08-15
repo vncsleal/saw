@@ -3,13 +3,12 @@
 [![npm version (@vncsleal/saw)](https://img.shields.io/npm/v/%40vncsleal%2Fsaw)](https://www.npmjs.com/package/@vncsleal/saw)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Single-package implementation for canonical JSON, signed structured feed generation, llms.txt emission, verification (local & remote with auto key discovery), basic diff & detection helpers, canary detection, and server route utilities.
+Minimal toolkit for signed canonical JSON feeds: build & sign, verify (local or remote with auto key discovery), emit `llms.txt`, generate simple anti‑scrape HTML tokens, and add lightweight feed route handlers.
 
 ## Contents
 - `packages/cli` – Library + CLI distribution (published as `@vncsleal/saw`).
-- `canonicalization-fixtures/`, `test-vectors/` – Determinism / hash vectors.
-- `scripts/` – Basic benchmarking & smoke scripts.
-- `examples/` – Integration examples.
+- `test-vectors/` – Canonicalization & signature determinism vectors.
+- `scripts/` – Benchmark & smoke scripts.
 
 ## Installation
 ```bash
@@ -48,7 +47,7 @@ npx @vncsleal/saw init
 ```
 
 ## Security & Key Handling
-Feed & diff signatures use Ed25519 (tweetnacl). Treat secret keys and canary secrets as production credentials.
+Feed signatures use Ed25519 (tweetnacl). Treat secret keys as production credentials.
 
 Guidelines:
 - Never commit secrets: keep `SAW_SECRET_KEY`, `SAW_CANARY_SECRET`, API key secrets, and HMAC salts out of VCS. Use `.env` (git‑ignored) or secret managers (1Password, Vault, AWS/GCP secret stores).
@@ -61,32 +60,23 @@ Guidelines:
 - Per‑key canaries: derive a salt server‑side (e.g., first 8 hex chars of SHA‑256 of API key secret) and never send the salt itself to clients.
 - API keys & HMAC: the API key secret must be long (>=32 random bytes). Return it only once on creation; store only a hashed form (e.g., SHA‑256) plus truncated salt/metadata.
 - Memory hygiene: avoid long‑lived plaintext secrets in logs. Zero buffers after use in higher‑sensitivity environments (not implemented here; future hardening).
-- Diff verification: always verify `signature` for diff subsets before trusting `changed` / `removed` arrays. Reject unsigned or malformed responses.
-- Time skew: when adding timestamped request signing, enforce small clock drift (e.g., ±120s) to reduce replay window.
-- Production monitoring: alert on repeated signature verification failures or sudden spike in canary detections (possible scraping).
+- Time skew: if you add timestamped request signing in your own stack, enforce small clock drift (e.g., ±120s) to reduce replay window.
+- Monitoring: alert on repeated signature verification failures.
 
 Threat considerations:
 - Secret key exposure lets attackers forge feeds/diffs: rotate immediately and broadcast compromise.
-- Canary secret exposure enables prediction of static canaries: rotate; per‑key salted canaries mitigate blast radius.
-- API key database leak (hashed secrets) still permits offline brute force if weak secrets allowed—enforce length & randomness.
+- API key database leak (if you build one) still permits offline brute force if weak secrets allowed—enforce length & randomness.
 
-Planned hardening (future): optional key vault interface, in‑memory secret zeroization, multi‑signature rotation window, structured security advisories.
+Planned hardening (future): optional key vault interface, in‑memory secret zeroization, structured security advisories.
 
-## CLI Commands (concise)
+## CLI Commands
 ```bash
 keygen                 # Generate Ed25519 keypair
 feed                   # Build & sign feed (feed.json) + optional llms.txt
-llms                   # Generate llms.txt only (auto infer site/url)
-verify <file|site>     # Verify local file or remote site feed
-antiscrape <text|file> # Detect canary tokens (local or --remote base)
-init                   # One-shot: keys + sample block + feed + llms.txt
-
-# Extended groups:
-key gen|gen-api|list-api
-feed build|verify
-llms init
-diff verify --since <ISO>
-detect <text|file> [--remote]
+llms                   # Generate llms.txt only
+verify <file|site>     # Verify local file or remote site feed (auto key header)
+antiscrape <text>      # Extract / locate anti‑scrape tokens in text/HTML
+init                   # Keys + sample block + feed + llms.txt
 ```
 
 Examples:
@@ -96,7 +86,7 @@ npx @vncsleal/saw feed build --site example.com --out feed.json
 npx @vncsleal/saw llms init --url https://example.com/api/saw/feed --public-key $SAW_PUBLIC_KEY
 npx @vncsleal/saw verify feed.json $SAW_PUBLIC_KEY --json
 npx @vncsleal/saw verify example.com         # Remote (auto key header)
-npx @vncsleal/saw antiscrape 'text with ABC-123456 token'
+npx @vncsleal/saw antiscrape '<html>Example</html>'
 ```
 
 Environment variables:
@@ -124,25 +114,24 @@ Expected output: all vectors pass.
 3. Replace placeholder hash & (if needed) canonical string.
 4. Re-run tests and confirm PASS.
 
-## Server Helpers
-Import lightweight route creators for Node or edge runtimes:
+## Route Helpers
+Fetch-style (edge / serverless):
 ```ts
-import { createFeedHandler, createDetectHandler } from '@vncsleal/saw';
-import http from 'node:http';
-
-const handler = createFeedHandler({
+import { createFeedRoute } from '@vncsleal/saw';
+export const GET = createFeedRoute({
    site: 'example.com',
    secretKeyBase64: process.env.SAW_SECRET_KEY!,
    publicKeyBase64: process.env.SAW_PUBLIC_KEY,
-   exposePublicKeyHeader: true,
-   getBlocks: async () => [ { id:'block:home', title:'Home', content:'Hello', version:'v1' } ]
+   getBlocks: () => [{ id:'b1', title:'Hello', content:'World' }]
 });
+```
 
-http.createServer((req,res)=>{
-   if (req.url === '/api/saw/feed') return handler(req,res);
-   if (req.url === '/api/saw/detect') return createDetectHandler()(req,res);
-   res.statusCode = 404; res.end('not found');
-}).listen(3000);
+Node `http`:
+```ts
+import { createNodeFeedHandler } from '@vncsleal/saw';
+import http from 'node:http';
+const handler = createNodeFeedHandler({ site:'example.com', secretKeyBase64: process.env.SAW_SECRET_KEY!, publicKeyBase64: process.env.SAW_PUBLIC_KEY, getBlocks: () => [{ id:'b1', title:'Hello' }] });
+http.createServer((req,res)=>{ if (req.url === '/api/saw/feed') return handler(req,res); res.statusCode=404; res.end('not found'); }).listen(3000);
 ```
 
 Edge / Fetch style:
@@ -229,15 +218,14 @@ http.createServer((req,res)=>{
 }).listen(3000);
 ```
 
-Detection: the existing `antiscrape` / `detect` command or `extractCanariesFromHtml` function can be used on scraped text to surface leaks.
+Detection: the `antiscrape` command or scanning HTML produced by `buildAntiScrapeHTML` can surface embedded tokens in scraped pages.
 ## (Removed) Verification Harness
-The previous multi-phase verification harness (canonicalization corpus, diff/detect, webhook validation) was removed to streamline the project. Remaining validation lives in unit tests and the simple smoke/benchmark scripts. Historical docs retained in git history if reference needed.
+The earlier multi-phase harness & diff/detect layers were removed. Guarantees now: deterministic canonical JSON + Ed25519 signing verified by unit tests.
 
-## Future Enhancements
-- Rich diff endpoint helpers
-- Optional HMAC request signing helper
-- Multi-sig / key rotation windows
-- Extended detector heuristics
+## Future Enhancements (potential)
+- Optional multi-key rotation helper
+- Smaller ESM/browser build
+- More anti-scrape HTML strategies
 
 ## Benchmarks
 ## Coverage Enforcement
