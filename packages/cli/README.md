@@ -16,9 +16,9 @@ Intentionally removed for simplicity: diff APIs, detection server, seeded keygen
 
 ## Install
 ```bash
-npm install saw
-# or ad‑hoc
-npx saw key gen --env
+npm install @vncsleal/saw
+# or ad‑hoc (no install global state)
+npx @vncsleal/saw key gen --env
 ```
 Requires Node >=18.
 
@@ -75,7 +75,7 @@ import {
 	generateLlmsTxt,
 	buildAntiScrapeHTML,
 	createFeedRoute
-} from 'saw';
+} from '@vncsleal/saw';
 
 const { publicKeyBase64, secretKeyBase64 } = generateKeyPair();
 const feed = buildFeed({

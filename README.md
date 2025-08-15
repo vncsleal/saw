@@ -1,26 +1,26 @@
 # SAW (Structured Access Web)
 
-[![npm version (saw)](https://img.shields.io/npm/v/saw)](https://www.npmjs.com/package/saw)
+[![npm version (@vncsleal/saw)](https://img.shields.io/npm/v/%40vncsleal%2Fsaw)](https://www.npmjs.com/package/@vncsleal/saw)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Single-package implementation for canonical JSON, signed structured feed generation, llms.txt emission, verification (local & remote with auto key discovery), basic diff & detection helpers, canary detection, and server route utilities.
 
 ## Contents
-- `packages/cli` – Library + CLI distribution (published as `saw`).
+- `packages/cli` – Library + CLI distribution (published as `@vncsleal/saw`).
 - `canonicalization-fixtures/`, `test-vectors/` – Determinism / hash vectors.
 - `scripts/` – Determinism, benchmarking, harness.
 - `examples/` – Integration examples.
 
 ## Installation
 ```bash
-npm install saw
+npm install @vncsleal/saw
 # or
-pnpm add saw
+pnpm add @vncsleal/saw
 ```
 
 Ad-hoc:
 ```bash
-npx saw keygen
+npx @vncsleal/saw keygen
 ```
 
 ## Quick Start
@@ -28,23 +28,23 @@ npx saw keygen
 Generate keys, build feed, verify:
 ```bash
 # Generate Ed25519 keypair
-npx saw keygen > keys.txt
+npx @vncsleal/saw keygen > keys.txt
 export SAW_PUBLIC_KEY=$(grep PUBLIC_KEY keys.txt | cut -d= -f2)
 export SAW_SECRET_KEY=$(grep SECRET_KEY keys.txt | cut -d= -f2)
 
 # Build feed (creates feed.json and optionally llms.txt if SAW_PUBLIC_KEY set)
-npx saw feed
+npx @vncsleal/saw feed
 
 # Verify locally
-npx saw verify feed.json $SAW_PUBLIC_KEY
+npx @vncsleal/saw verify feed.json $SAW_PUBLIC_KEY
 
 # Verify remote (auto key discovery via x-saw-public-key if exposed)
-npx saw verify example.com
+npx @vncsleal/saw verify example.com
 ```
 
 All-in-one project bootstrap:
 ```bash
-npx saw init
+npx @vncsleal/saw init
 ```
 
 ## Security & Key Handling
@@ -91,12 +91,12 @@ detect <text|file> [--remote]
 
 Examples:
 ```bash
-npx saw key gen --dotenv           # Write keys into .env
-npx saw feed build --site example.com --out feed.json
-npx saw llms init --url https://example.com/api/saw/feed --public-key $SAW_PUBLIC_KEY
-npx saw verify feed.json $SAW_PUBLIC_KEY --json
-npx saw verify example.com         # Remote (auto key header)
-npx saw antiscrape 'text with ABC-123456 token'
+npx @vncsleal/saw key gen --dotenv           # Write keys into .env
+npx @vncsleal/saw feed build --site example.com --out feed.json
+npx @vncsleal/saw llms init --url https://example.com/api/saw/feed --public-key $SAW_PUBLIC_KEY
+npx @vncsleal/saw verify feed.json $SAW_PUBLIC_KEY --json
+npx @vncsleal/saw verify example.com         # Remote (auto key header)
+npx @vncsleal/saw antiscrape 'text with ABC-123456 token'
 ```
 
 Environment variables:

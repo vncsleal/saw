@@ -1,6 +1,6 @@
 {
-  "name": "saw",
-  "version": "0.2.1",
+  "name": "@vncsleal/saw",
+  "version": "0.2.2",
   "description": "SAW: minimal library + CLI for signed canonical JSON feeds, llms.txt, verification, and anti-scrape HTML.",
   "bin": { "saw": "dist/index.js" },
   "type": "module",
