@@ -36,19 +36,19 @@ Aliases (`keygen`, `feed`, `generate`, `llms`, `verify`) remain.
 ## Quick Start
 ```bash
 # 1. Keys
-eval "$(npx saw key gen --env)"   # exports SAW_PUBLIC_KEY / SAW_SECRET_KEY
+eval "$(npx @vncsleal/saw key gen --env)"   # exports SAW_PUBLIC_KEY / SAW_SECRET_KEY
 
 # 2. Build feed
-SAW_SITE=example.com npx saw feed build --out feed.json
+SAW_SITE=example.com npx @vncsleal/saw feed build --out feed.json
 
 # 3. Verify
-npx saw verify feed.json $SAW_PUBLIC_KEY --json
+npx @vncsleal/saw verify feed.json $SAW_PUBLIC_KEY --json
 
 # 4. llms.txt
-npx saw llms init --url https://example.com/api/saw/feed --public-key $SAW_PUBLIC_KEY --out public/.well-known/llms.txt
+npx @vncsleal/saw llms init --url https://example.com/api/saw/feed --public-key $SAW_PUBLIC_KEY --out public/.well-known/llms.txt
 
 # 5. Anti‑scrape HTML
-npx saw antiscrape index.html > index.instrumented.html
+npx @vncsleal/saw antiscrape index.html > index.instrumented.html
 ```
 
 ## Environment Variables
@@ -99,4 +99,4 @@ node packages/cli/dist/index.js --help
 MIT
 
 ---
-Minimal core & CLI live in one package; import APIs from `saw`.
+Minimal core & CLI live in one package; import APIs from `@vncsleal/saw`.

@@ -127,7 +127,7 @@ Expected output: all vectors pass.
 ## Server Helpers
 Import lightweight route creators for Node or edge runtimes:
 ```ts
-import { createFeedHandler, createDetectHandler } from 'saw';
+import { createFeedHandler, createDetectHandler } from '@vncsleal/saw';
 import http from 'node:http';
 
 const handler = createFeedHandler({
@@ -147,14 +147,14 @@ http.createServer((req,res)=>{
 
 Edge / Fetch style:
 ```ts
-import { createFeedFetchHandler, createDetectFetchHandler } from 'saw';
+import { createFeedFetchHandler, createDetectFetchHandler } from '@vncsleal/saw';
 export const GET = createFeedFetchHandler({ site:'example.com', secretKeyBase64: process.env.SAW_SECRET_KEY!, getBlocks: ()=>[{id:'b1'}] });
 export const POST = createDetectFetchHandler();
 ```
 
 Expose `/.well-known/llms.txt` (example build):
 ```bash
-npx saw llms > public/.well-known/llms.txt
+npx @vncsleal/saw llms > public/.well-known/llms.txt
 ```
 
 Event schema (fields may expand):
@@ -214,14 +214,14 @@ Tokens expire (default 5–10 min) and are not retained long-term. Classificatio
 ## Anti-Scrape Utilities
 Runtime helpers to embed canary tokens in HTML to catch naive scrapers:
 ```ts
-import { buildAntiScrapeHTML } from 'saw';
+import { buildAntiScrapeHTML } from '@vncsleal/saw';
 const { html, token } = buildAntiScrapeHTML('<html><body><h1>Hello</h1></body></html>', { honeyLink:true, randomZeroWidth:true });
 console.log(token, html.length);
 ```
 
 Node handler:
 ```ts
-import { createAntiScrapePageHandler } from 'saw';
+import { createAntiScrapePageHandler } from '@vncsleal/saw';
 import http from 'node:http';
 const page = createAntiScrapePageHandler(()=>'<html><body>Welcome</body></html>', { honeyLink:true });
 http.createServer((req,res)=>{
